@@ -1,7 +1,6 @@
 import numpy as np
 import torch.nn as nn
 import torch
-from matplotlib.pyplot import imsave
 from inferno.extensions.criteria.set_similarity_measures import SorensenDiceLoss
 
 class CombinedLoss(nn.Module):

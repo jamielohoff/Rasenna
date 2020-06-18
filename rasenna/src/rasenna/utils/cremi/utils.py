@@ -1,6 +1,7 @@
 import h5py
 import numpy as np
 import scipy.ndimage
+import matplotlib.pyplot as plt
 
 
 def open_hdf_file(filename, key=None):
@@ -111,4 +112,8 @@ def extract_random_slices(dataset, depth, height, width, nsamples):
     intervals = [(z, z + depth), (x, x + height), (y, y + width)]
 
     return data, intervals
+
+
+def save_everywhere(filename, data):
+    plt.imsave(filename, data)
 

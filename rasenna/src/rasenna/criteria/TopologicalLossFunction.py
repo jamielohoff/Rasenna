@@ -20,19 +20,19 @@ class TopologicalLossFunction(Function):
         """
         Forward pass of topological loss
         """
+        ctx.x_size = input.shape[1]
+        ctx.y_size = input.shape[2]
+
         loss = 0.0
         dgm_list = []
+
+        print('sizes:', ctx.x_size, ctx.y_size)
 
         for i in range(0, len(input)):
             input_dgms, input_birth_cp, input_death_cp = compute_persistence_2DImg(input.cpu().detach()[i], dimension=1)
             target_dgms, target_birth_cp, target_death_cp = compute_persistence_2DImg(target.cpu().detach()[i], dimension=1)
 
             dgm_list.append((input_dgms, input_birth_cp, input_death_cp, target_dgms))
-
-            #ctx.save_for_backward(input_dgms, input_birth_cp, input_death_cp, target_dgms)
-
-            #lh_dgm = input_dgms
-            #gt_dgm = target_dgms
 
             force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(input_dgms, target_dgms)
             for idx in idx_holes_to_fix:
@@ -85,8 +85,7 @@ class TopologicalLossFunction(Function):
             """
             topo_grad[:, 2] = topo_grad[:, 2] * -2
 
-            # make shape variable such that it can be read from the .yaml-file
-            gradients = np.zeros((272, 272))
+            gradients = np.zeros((ctx.x_size, ctx.y_size))
 
             for pos in topo_grad:
                 gradients[int(pos[0]), int(pos[1])] = pos[2]

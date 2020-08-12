@@ -77,7 +77,7 @@ class TopologicalLoss(nn.Module):
         self.g_factor = g_factor
 
         self.SDLoss = SorensenDiceLoss()
-        self.TopoLoss = TopologicalLossFunction()
+        self.TopoLoss = TopologicalLossFunction.apply
 
     def forward(self, input, target):
         """
@@ -98,7 +98,7 @@ class TopologicalLoss(nn.Module):
         print('Shapes: ', in_tensor_slice, target_tensor_slice)
 
         # Remove when we do not need it anymore
-        topological_loss = self.TopoLoss.apply(in_tensor_slice, target_tensor_slice).cuda()
+        topological_loss = self.TopoLoss(in_tensor_slice, target_tensor_slice).cuda()
         sorensen_dice_loss = self.SDLoss(input, target)
         
         loss = sorensen_dice_loss + self.g_factor * topological_loss
@@ -106,5 +106,4 @@ class TopologicalLoss(nn.Module):
         print('Losses:', topological_loss, sorensen_dice_loss, loss)
 
         return loss
-
 

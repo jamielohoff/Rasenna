@@ -35,18 +35,19 @@ class TopologicalLossFunction(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
+        # insert comment here
         print('Backwards...')
 
+        print(ctx.saved_tensors)
+        
         lh_dgm, lh_bcp, lh_dcp, gt_dgm = ctx.saved_tensors
-        """
-        compute topological gradient
-        """
-        force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(lh_dgm, gt_dgm)
+
+        force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(lh_dgm.numpy(), gt_dgm.numpy())
 
         # each birth/death crit pt of a persistence dot to move corresponds to a row
         # each row has 3 values: x, y coordinates, and the force (increase/decrease)
+        print('Creating array...')
         topo_grad = np.zeros([2 * (len(idx_holes_to_fix) + len(idx_holes_to_remove)), 3])
-
         counter = 0
         for idx in idx_holes_to_fix:
             topo_grad[counter] = [lh_bcp[idx, 1], lh_bcp[idx, 0], force_list[idx, 0]]
@@ -59,11 +60,26 @@ class TopologicalLossFunction(Function):
             topo_grad[counter] = [lh_dcp[idx, 1], lh_dcp[idx, 0], force_list[idx, 1]]
             counter = counter + 1
 
+        """
+        topo_grad contains the coordinates/pixel positions of the critical points 
+        as well as the value of the gradient at the respective point in the format
+        [x, y, gradient]
+        we have to convert this into a format pytorch can use, i.e. we have to 
+        create a 2x2 matrix that contains the gradients at the respective positions
+        and uses the x,y-positions as indices
+
+        thus we get a [272, 272] matrix with gradients as entries
+        """
         topo_grad[:, 2] = topo_grad[:, 2] * -2
 
-        print('Topological gradient: ', topo_grad)
+        gradients = np.zeros((272, 272))
 
-        return torch.from_numpy(topo_grad).cuda()
+        for pos in topo_grad:
+            gradients[int(pos[0]), int(pos[1])] = pos[2]
+
+        print('Topological gradient: ', topo_grad, gradients)
+
+        return torch.from_numpy(gradients).cuda(), None
 
 def compute_persistence_2DImg(f, dimension):
     """
@@ -103,9 +119,12 @@ def compute_persistence_2DImg(f, dimension):
     return torch.from_numpy(dgm), torch.from_numpy(birth_cp_list), torch.from_numpy(death_cp_list)
 
 def compute_dgm_force(lh_dgm, gt_dgm):
+    print('dgm_force')
     # get persistence list from both diagrams
     lh_pers = lh_dgm[:, 1] - lh_dgm[:, 0]
     gt_pers = gt_dgm[:, 1] - gt_dgm[:, 0]
+
+    print('Error: ', lh_pers.size, gt_pers.size)
 
     # more lh dots than gt dots
     assert lh_pers.size > gt_pers.size

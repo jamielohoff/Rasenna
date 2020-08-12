@@ -17,69 +17,80 @@ class TopologicalLossFunction(Function):
         """
         compute topological loss
         """
-        input_dgms, input_birth_cp, input_death_cp = compute_persistence_2DImg(input.cpu().detach(), dimension=1)
-        target_dgms, target_birth_cp, target_death_cp = compute_persistence_2DImg(target.cpu().detach(), dimension=1)
-
-        ctx.save_for_backward(input_dgms, input_birth_cp, input_death_cp, target_dgms)
-
-        lh_dgm = input_dgms.numpy()
-        gt_dgm = target_dgms.numpy()
-
-        force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(lh_dgm, gt_dgm)
         loss = 0.0
-        for idx in idx_holes_to_fix:
-            loss = loss + force_list[idx, 0] ** 2 + force_list[idx, 1] ** 2
-        for idx in idx_holes_to_remove:
-            loss = loss + force_list[idx, 0] ** 2 + force_list[idx, 1] ** 2
+        dgm_list = []
+
+        for i in range(0, len(input)):
+            input_dgms, input_birth_cp, input_death_cp = compute_persistence_2DImg(input.cpu().detach()[i], dimension=1)
+            target_dgms, target_birth_cp, target_death_cp = compute_persistence_2DImg(target.cpu().detach()[i], dimension=1)
+
+            dgm_list.append((input_dgms, input_birth_cp, input_death_cp, target_dgms))
+
+            #ctx.save_for_backward(input_dgms, input_birth_cp, input_death_cp, target_dgms)
+
+            #lh_dgm = input_dgms
+            #gt_dgm = target_dgms
+
+            force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(input_dgms, target_dgms)
+            for idx in idx_holes_to_fix:
+                loss = loss + force_list[idx, 0] ** 2 + force_list[idx, 1] ** 2
+            for idx in idx_holes_to_remove:
+                loss = loss + force_list[idx, 0] ** 2 + force_list[idx, 1] ** 2
+
+        ctx.dgm_list = dgm_list
+
         return torch.tensor(loss)
 
     @staticmethod
     def backward(ctx, grad_output):
-        # insert comment here
-        print('Backwards...')
+        # insert comment here 
+        dgm_list = ctx.dgm_list
 
-        print(ctx.saved_tensors)
-        
-        lh_dgm, lh_bcp, lh_dcp, gt_dgm = ctx.saved_tensors
+        grad_list = []
 
-        force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(lh_dgm.numpy(), gt_dgm.numpy())
+        for list_slice in dgm_list:
+            lh_dgm, lh_bcp, lh_dcp, gt_dgm = list_slice
 
-        # each birth/death crit pt of a persistence dot to move corresponds to a row
-        # each row has 3 values: x, y coordinates, and the force (increase/decrease)
-        print('Creating array...')
-        topo_grad = np.zeros([2 * (len(idx_holes_to_fix) + len(idx_holes_to_remove)), 3])
-        counter = 0
-        for idx in idx_holes_to_fix:
-            topo_grad[counter] = [lh_bcp[idx, 1], lh_bcp[idx, 0], force_list[idx, 0]]
-            counter = counter + 1
-            topo_grad[counter] = [lh_dcp[idx, 1], lh_dcp[idx, 0], force_list[idx, 1]]
-            counter = counter + 1
-        for idx in idx_holes_to_remove:
-            topo_grad[counter] = [lh_bcp[idx, 1], lh_bcp[idx, 0], force_list[idx, 0]]
-            counter = counter + 1
-            topo_grad[counter] = [lh_dcp[idx, 1], lh_dcp[idx, 0], force_list[idx, 1]]
-            counter = counter + 1
+            force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(lh_dgm, gt_dgm)
 
-        """
-        topo_grad contains the coordinates/pixel positions of the critical points 
-        as well as the value of the gradient at the respective point in the format
-        [x, y, gradient]
-        we have to convert this into a format pytorch can use, i.e. we have to 
-        create a 2x2 matrix that contains the gradients at the respective positions
-        and uses the x,y-positions as indices
+            # each birth/death crit pt of a persistence dot to move corresponds to a row
+            # each row has 3 values: x, y coordinates, and the force (increase/decrease)
+            topo_grad = np.zeros([2 * (len(idx_holes_to_fix) + len(idx_holes_to_remove)), 3])
+            counter = 0
+            for idx in idx_holes_to_fix:
+                topo_grad[counter] = [lh_bcp[idx, 1], lh_bcp[idx, 0], force_list[idx, 0]]
+                counter = counter + 1
+                topo_grad[counter] = [lh_dcp[idx, 1], lh_dcp[idx, 0], force_list[idx, 1]]
+                counter = counter + 1
+            for idx in idx_holes_to_remove:
+                topo_grad[counter] = [lh_bcp[idx, 1], lh_bcp[idx, 0], force_list[idx, 0]]
+                counter = counter + 1
+                topo_grad[counter] = [lh_dcp[idx, 1], lh_dcp[idx, 0], force_list[idx, 1]]
+                counter = counter + 1
 
-        thus we get a [272, 272] matrix with gradients as entries
-        """
-        topo_grad[:, 2] = topo_grad[:, 2] * -2
+            """
+            topo_grad contains the coordinates/pixel positions of the critical points 
+            as well as the value of the gradient at the respective point in the format
+            [x, y, gradient]
+            we have to convert this into a format pytorch can use, i.e. we have to 
+            create a 2x2 matrix that contains the gradients at the respective positions
+            and uses the x,y-positions as indices
 
-        gradients = np.zeros((272, 272))
+            thus we get a [272, 272] matrix with gradients as entries
+            """
+            topo_grad[:, 2] = topo_grad[:, 2] * -2
 
-        for pos in topo_grad:
-            gradients[int(pos[0]), int(pos[1])] = pos[2]
+            # make shape variable such that it can be read from the .yaml-file
+            gradients = np.zeros((272, 272))
 
-        print('Topological gradient: ', topo_grad, gradients)
+            for pos in topo_grad:
+                gradients[int(pos[0]), int(pos[1])] = pos[2]
+            
+            grad_list.append(torch.from_numpy(gradients))
 
-        return torch.from_numpy(gradients).cuda(), None
+        print('Topological gradient: ', torch.stack(grad_list, dim=0))
+
+        return torch.stack(grad_list, dim=0).cuda(), None
 
 def compute_persistence_2DImg(f, dimension):
     """
@@ -116,15 +127,12 @@ def compute_persistence_2DImg(f, dimension):
     birth_cp_list = birth_cp_list - padwidth
     death_cp_list = death_cp_list - padwidth
 
-    return torch.from_numpy(dgm), torch.from_numpy(birth_cp_list), torch.from_numpy(death_cp_list)
+    return dgm, birth_cp_list, death_cp_list
 
 def compute_dgm_force(lh_dgm, gt_dgm):
-    print('dgm_force')
     # get persistence list from both diagrams
     lh_pers = lh_dgm[:, 1] - lh_dgm[:, 0]
     gt_pers = gt_dgm[:, 1] - gt_dgm[:, 0]
-
-    print('Error: ', lh_pers.size, gt_pers.size)
 
     # more lh dots than gt dots
     assert lh_pers.size > gt_pers.size

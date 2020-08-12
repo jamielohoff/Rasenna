@@ -11,11 +11,14 @@ import imp
 imp.load_dynamic('PersistencePython', '/export/home/jgrieser/anaconda3/envs/segmFr/lib/PersistencePython.so')
 
 class TopologicalLossFunction(Function):
+    """
+    Topological loss function for 2.5 dimensions, i.e. 1d homology on 3d voxels
+    """
 
     @staticmethod
     def forward(ctx, input, target):
         """
-        compute topological loss
+        Forward pass of topological loss
         """
         loss = 0.0
         dgm_list = []
@@ -43,7 +46,9 @@ class TopologicalLossFunction(Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        # insert comment here 
+        """
+        Backward pass of topological loss
+        """ 
         dgm_list = ctx.dgm_list
 
         grad_list = []
@@ -88,7 +93,7 @@ class TopologicalLossFunction(Function):
             
             grad_list.append(torch.from_numpy(gradients))
 
-        print('Topological gradient: ', torch.stack(grad_list, dim=0))
+        #print('Topological gradient: ', torch.stack(grad_list, dim=0))
 
         return torch.stack(grad_list, dim=0).cuda(), None
 

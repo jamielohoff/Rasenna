@@ -92,15 +92,13 @@ class TopologicalLoss(nn.Module):
         boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool())
         boundary_prob = (1/3) * (input[0,0,:,:,:] + input[0,1,:,:,:] + input[0,2,:,:,:])
 
-        print('Shapes: ', boundary_prob.shape)
-
         # Remove when we do not need it anymore
         topological_loss = self.TopoLoss(boundary_prob, boundary_map.float()).cuda()
         sorensen_dice_loss = self.SDLoss(input, target)
         
         loss = sorensen_dice_loss + self.g_factor * topological_loss
 
-        print('Losses:', topological_loss, sorensen_dice_loss, loss)
+        print('Topological Loss:', topological_loss, 'Sorensen-Dice Loss:', sorensen_dice_loss, "Loss:", loss)
 
         return loss
 

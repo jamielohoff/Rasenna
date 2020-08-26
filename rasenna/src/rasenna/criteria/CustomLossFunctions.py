@@ -4,6 +4,7 @@ import torch
 import time
 from inferno.extensions.criteria.set_similarity_measures import SorensenDiceLoss
 from rasenna.criteria.TopologicalLossFunction import TopologicalLossFunction
+from speedrun.log_anywhere import log_scalar
 
 class CombinedLoss(nn.Module):
     """
@@ -45,9 +46,6 @@ class CombinedLoss(nn.Module):
 
         SD_Loss = SorensenDiceLoss()
         CE_Loss = nn.BCELoss()
-
-        # Remove when we do not need it anymore
-        print(CE_Loss(boundary_prob.view(-1), boundary_map.view(-1).float()))
         
         loss = SD_Loss(input, target) + self.g_factor * CE_Loss(boundary_prob.view(-1), boundary_map.view(-1).float())
         return loss
@@ -62,7 +60,7 @@ class TopologicalLoss(nn.Module):
         """
         Parameters
         ----------
-        :param g: float
+        :param g_factor: float
             This controls the weighting of SorensenDice vs. other Sore Loss
         :param weight: torch.FloatTensor or torch.cuda.FloatTensor
             Class weights: Applies only if `channelwise = True`.
@@ -87,17 +85,22 @@ class TopologicalLoss(nn.Module):
         :param target:     torch.FloatTensor or torch.cuda.FloatTensor
         Expected shape of the inputs: (batch_size, nb_channels, ...)
         """
-
         boundary_map = torch.bitwise_or(target[0,0,:,:,:].bool(), target[0,1,:,:,:].bool())
         boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool())
         boundary_prob = (1/3) * (input[0,0,:,:,:] + input[0,1,:,:,:] + input[0,2,:,:,:])
 
-        # Remove when we do not need it anymore
-        topological_loss = self.TopoLoss(boundary_prob, boundary_map.float()).cuda()
+        # Testing the minus sign of the gradient
+        boundary_prob = 1 - boundary_prob
+        boundary_map = 1 - boundary_map.float()
+
         sorensen_dice_loss = self.SDLoss(input, target)
+        topological_loss = self.TopoLoss(boundary_prob, boundary_map.float()).cuda()
+
+        # logging of the different losses in tensorboardX
+        log_scalar('training_loss/SorensenDice', sorensen_dice_loss)
+        log_scalar('training_loss/Topological', topological_loss)
         
         loss = sorensen_dice_loss + self.g_factor * topological_loss
-
         print('Topological Loss:', topological_loss, 'Sorensen-Dice Loss:', sorensen_dice_loss, "Loss:", loss)
 
         return loss

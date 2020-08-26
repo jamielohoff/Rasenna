@@ -3,16 +3,15 @@ import torch.nn as nn
 import torch
 import time
 import math
-from inferno.extensions.criteria.set_similarity_measures import SorensenDiceLoss
-#from PersistencePython import cubePers
 from torch.autograd import Function
 
+# fix imports 
 import imp
 imp.load_dynamic('PersistencePython', '/export/home/jgrieser/anaconda3/envs/segmFr/lib/PersistencePython.so')
 
 class TopologicalLossFunction(Function):
     """
-    Topological loss function for 2.5 dimensions, i.e. 1d homology on 3d voxels
+    Topological loss function for 2.5 dimensions, i.e. 1d homology on 3d voxel slices in z-direction
     """
 
     @staticmethod
@@ -32,6 +31,7 @@ class TopologicalLossFunction(Function):
             input_dgms, input_birth_cp, input_death_cp = compute_persistence_2DImg(input.cpu().detach()[i], dimension=1)
             target_dgms, target_birth_cp, target_death_cp = compute_persistence_2DImg(target.cpu().detach()[i], dimension=1)
 
+            # save critical points and persistence diagrams for back-propagation
             dgm_list.append((input_dgms, input_birth_cp, input_death_cp, target_dgms))
 
             force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(input_dgms, target_dgms)
@@ -81,9 +81,9 @@ class TopologicalLossFunction(Function):
             create a 2x2 matrix that contains the gradients at the respective positions
             and uses the x,y-positions as indices
 
-            thus we get a [272, 272] matrix with gradients as entries
+            thus we get a [length, width]-matrix with gradients as entries
             """
-            topo_grad[:, 2] = topo_grad[:, 2] * -2
+            topo_grad[:, 2] = topo_grad[:, 2] * -2 # clarify the role of the minus sign here!!!
 
             gradients = np.zeros((ctx.x_size, ctx.y_size))
 
@@ -91,8 +91,6 @@ class TopologicalLossFunction(Function):
                 gradients[int(pos[0]), int(pos[1])] = pos[2]
             
             grad_list.append(torch.from_numpy(gradients))
-
-        #print('Topological gradient: ', torch.stack(grad_list, dim=0))
 
         return torch.stack(grad_list, dim=0).cuda(), None
 
@@ -104,12 +102,22 @@ def compute_persistence_2DImg(f, dimension):
     assert len(f.shape) == 2  # f has to be 2D function
     dim = 2
 
-    # pad the function with a few pixels of minimum values
+    # we have to invert values because the function calculating the topological features
+    # or persistence needs the inverted 2D map 
+    #f = 1 - f
+
+    # pad the function with a few pixels of maximum values
     # this way one can compute the 1D topology as loops
     # remember to transform back to the original coordinates when finished
+    # black = 1, white = 0
     padwidth = 2
     padvalue = min(f.min(), 0.0)
     f_padded = np.pad(f, padwidth, 'constant', constant_values=padvalue)
+
+    import matplotlib.pyplot as plt
+
+    plt.imsave('/export/home/jgrieser/IWR-Project/Rasenna/rasenna/src/rasenna/tests/test.png', f_padded, cmap='Greys')
+    print('Image saved!')
 
     # call persistence code to compute diagrams
     # loads PersistencePython.so (compiled from C++); should be in current dir
@@ -139,7 +147,7 @@ def compute_dgm_force(lh_dgm, gt_dgm):
     gt_pers = gt_dgm[:, 1] - gt_dgm[:, 0]
 
     # more lh dots than gt dots
-    assert lh_pers.size > gt_pers.size
+    assert lh_pers.size >= gt_pers.size
 
     # check to ensure that all gt dots have persistence 1
     tmp = gt_pers > 0.999

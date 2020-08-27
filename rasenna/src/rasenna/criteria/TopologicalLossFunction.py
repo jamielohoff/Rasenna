@@ -102,10 +102,6 @@ def compute_persistence_2DImg(f, dimension):
     assert len(f.shape) == 2  # f has to be 2D function
     dim = 2
 
-    # we have to invert values because the function calculating the topological features
-    # or persistence needs the inverted 2D map 
-    #f = 1 - f
-
     # pad the function with a few pixels of maximum values
     # this way one can compute the 1D topology as loops
     # remember to transform back to the original coordinates when finished

@@ -110,11 +110,6 @@ def compute_persistence_2DImg(f, dimension):
     padvalue = min(f.min(), 0.0)
     f_padded = np.pad(f, padwidth, 'constant', constant_values=padvalue)
 
-    import matplotlib.pyplot as plt
-
-    plt.imsave('/export/home/jgrieser/IWR-Project/Rasenna/rasenna/src/rasenna/tests/test.png', f_padded, cmap='Greys')
-    print('Image saved!')
-
     # call persistence code to compute diagrams
     # loads PersistencePython.so (compiled from C++); should be in current dir
     from PersistencePython import cubePers

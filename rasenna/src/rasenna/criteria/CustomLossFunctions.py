@@ -41,23 +41,31 @@ class TopologicalLoss(nn.Module):
         :param target:     torch.FloatTensor or torch.cuda.FloatTensor
         Expected shape of the inputs: (batch_size, nb_channels, ...)
         """
-        boundary_map = torch.bitwise_or(target[0,0,:,:,:].bool(), target[0,1,:,:,:].bool())
-        boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool())
-        boundary_prob = (1/3) * (input[0,0,:,:,:] + input[0,1,:,:,:] + input[0,2,:,:,:])
 
-        # We have to invert the values to be able to use persistent homology
-        boundary_prob = 1 - boundary_prob
-        boundary_map = 1 - boundary_map.float()
+        if self.g_factor != 0.0:
+            boundary_map = torch.bitwise_or(target[0,0,:,:,:].bool(), target[0,1,:,:,:].bool())
+            boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool())
+            boundary_prob = (1/3) * (input[0,0,:,:,:] + input[0,1,:,:,:] + input[0,2,:,:,:])
 
-        sorensen_dice_loss = self.SDLoss(input, target)
-        topological_loss = self.TopoLoss(boundary_prob, boundary_map.float()).cuda()
+            # We have to invert the values to be able to use persistent homology
+            boundary_prob = 1 - boundary_prob
+            boundary_map = 1 - boundary_map.float()
 
-        # logging of the different losses in tensorboardX
-        log_scalar('training_loss/SorensenDice', sorensen_dice_loss)
-        log_scalar('training_loss/Topological', topological_loss)
-        
-        loss = sorensen_dice_loss + self.g_factor * topological_loss
-        print('Topological Loss:', topological_loss, 'Sorensen-Dice Loss:', sorensen_dice_loss, "Loss:", loss)
+            # we have to put a minus sign here, see https://www.jeremyjordan.me/semantic-segmentation/
+            sorensen_dice_loss = 1 - self.SDLoss(input, target)
+            topological_loss = self.TopoLoss(boundary_prob, boundary_map.float()).cuda()
+
+            # logging of the different losses in tensorboardX
+            log_scalar('training_loss/SorensenDice', sorensen_dice_loss)
+            log_scalar('training_loss/Topological', topological_loss)
+            
+            loss = sorensen_dice_loss + self.g_factor * topological_loss
+            print('Topological Loss:', topological_loss, 'Sorensen-Dice Loss:', sorensen_dice_loss, "Loss:", loss)
+        else:
+            loss = self.SDLoss(input, target)
+            # logging of the loss
+            log_scalar('training_loss/SorensenDice', loss)
+            print("Loss:", loss)
 
         return loss
 

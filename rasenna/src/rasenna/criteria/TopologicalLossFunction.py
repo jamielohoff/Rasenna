@@ -25,8 +25,6 @@ class TopologicalLossFunction(Function):
         loss = 0.0
         dgm_list = []
 
-        print('sizes:', ctx.x_size, ctx.y_size)
-
         for i in range(0, len(input)):
             input_dgms, input_birth_cp, input_death_cp = compute_persistence_2DImg(input.cpu().detach()[i], dimension=1)
             target_dgms, target_birth_cp, target_death_cp = compute_persistence_2DImg(target.cpu().detach()[i], dimension=1)

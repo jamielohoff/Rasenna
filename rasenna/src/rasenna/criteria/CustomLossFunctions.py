@@ -42,6 +42,8 @@ class TopologicalLoss(nn.Module):
         Expected shape of the inputs: (batch_size, nb_channels, ...)
         """
 
+        print("Input range:", torch.min(input), "to", torch.max(input))
+
         if self.g_factor != 0.0:
             boundary_map = torch.bitwise_or(target[0,0,:,:,:].bool(), target[0,1,:,:,:].bool())
             boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool())
@@ -62,7 +64,7 @@ class TopologicalLoss(nn.Module):
             loss = sorensen_dice_loss + self.g_factor * topological_loss
             print('Topological Loss:', topological_loss, 'Sorensen-Dice Loss:', sorensen_dice_loss, "Loss:", loss)
         else:
-            loss = self.SDLoss(input, target)
+            loss = 1 - self.SDLoss(input, target)
             # logging of the loss
             log_scalar('training_loss/SorensenDice', loss)
             print("Loss:", loss)

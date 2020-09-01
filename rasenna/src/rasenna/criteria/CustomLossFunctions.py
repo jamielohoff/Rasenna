@@ -42,8 +42,6 @@ class TopologicalLoss(nn.Module):
         Expected shape of the inputs: (batch_size, nb_channels, ...)
         """
 
-        print("Input range:", torch.min(input), "to", torch.max(input))
-
         if self.g_factor != 0.0:
             boundary_map = torch.bitwise_or(target[0,0,:,:,:].bool(), target[0,1,:,:,:].bool())
             boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool())

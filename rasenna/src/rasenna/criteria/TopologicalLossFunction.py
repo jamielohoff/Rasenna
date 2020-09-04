@@ -81,7 +81,7 @@ class TopologicalLossFunction(Function):
 
             thus we get a [length, width]-matrix with gradients as entries
             """
-            topo_grad[:, 2] = topo_grad[:, 2] * -2 # clarify the role of the minus sign here!!!
+            topo_grad[:, 2] = topo_grad[:, 2] * 2 # clarify the role of the minus sign here!!!
 
             gradients = np.zeros((ctx.x_size, ctx.y_size))
 

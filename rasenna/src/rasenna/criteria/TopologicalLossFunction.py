@@ -7,7 +7,7 @@ from torch.autograd import Function
 
 # fix imports 
 import imp
-imp.load_dynamic('PersistencePython', '/export/home/jgrieser/anaconda3/envs/segmFr/lib/PersistencePython.so')
+imp.load_dynamic('PersistencePython', '/home_sdb/jgrieser_tmp/anaconda3/envs/segmFr/lib/PersistencePython.so')
 
 class TopologicalLossFunction(Function):
     """

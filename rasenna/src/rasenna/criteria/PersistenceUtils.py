@@ -114,7 +114,72 @@ def compute_dgm_force(lh_dgm, gt_dgm):
 
     return force_list, idx_holes_to_fix, idx_holes_to_remove
 
+def compute_loss(force_list, idx_holes_to_fix, idx_holes_to_remove):
+    # TODO fix documentation
+    '''
+    This function calculates the loss of of given topological 2-Space 
+    '''
+    loss = 0.0
 
-def draw_pers_dgm(lh_dgms, gt_dgms):
-    return 0
+    for idx in idx_holes_to_fix:
+        loss = loss + force_list[idx, 0] ** 2 + force_list[idx, 1] ** 2
+    for idx in idx_holes_to_remove:
+        loss = loss + force_list[idx, 0] ** 2 + force_list[idx, 1] ** 2
+
+    return loss
+
+
+def compute_loss_and_gradient(input, target):
+    '''
+    This is a function to parallelize the computation of the loss and gradient for each slice.
+    '''
+    ############################
+    #-Computation of the loss--#
+    ############################
+
+    input_dgms, input_birth_cp, input_death_cp = compute_persistence_2DImg(input, dimension=1)
+    target_dgms, target_birth_cp, target_death_cp = compute_persistence_2DImg(target, dimension=1)
+    force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(input_dgms, target_dgms)
+
+    loss = compute_loss(force_list, idx_holes_to_fix, idx_holes_to_remove)
+
+    ################################
+    #-Computation of the gradient--#
+    ################################
+
+    force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(input_dgms, target_dgms)
+
+    # each birth/death crit pt of a persistence dot to move corresponds to a row
+    # each row has 3 values: x, y coordinates, and the force (increase/decrease)
+    topo_grad = np.zeros([2 * (len(idx_holes_to_fix) + len(idx_holes_to_remove)), 3])
+    counter = 0
+    for idx in idx_holes_to_fix:
+        topo_grad[counter] = [input_birth_cp[idx, 1], input_birth_cp[idx, 0], force_list[idx, 0]]
+        counter = counter + 1
+        topo_grad[counter] = [input_death_cp[idx, 1], input_death_cp[idx, 0], force_list[idx, 1]]
+        counter = counter + 1
+    for idx in idx_holes_to_remove:
+        topo_grad[counter] = [input_birth_cp[idx, 1], input_birth_cp[idx, 0], force_list[idx, 0]]
+        counter = counter + 1
+        topo_grad[counter] = [input_death_cp[idx, 1], input_death_cp[idx, 0], force_list[idx, 1]]
+        counter = counter + 1
+
+    """
+    topo_grad contains the coordinates/pixel positions of the critical points 
+    as well as the value of the gradient at the respective point in the format
+    [x, y, gradient]
+    we have to convert this into a format pytorch can use, i.e. we have to 
+    create a 2x2 matrix that contains the gradients at the respective positions
+    and uses the x,y-positions as indices
+
+    thus we get a [length, width]-matrix with gradients as entries
+    """
+    topo_grad[:, 2] = topo_grad[:, 2] * -2 # TODO clarify the role of the minus sign here!!!
+
+    gradients = np.zeros((input.shape[0], input.shape[1]))
+
+    for pos in topo_grad:
+        gradients[int(pos[1]), int(pos[0])] = pos[2]
+
+    return loss, gradients
 

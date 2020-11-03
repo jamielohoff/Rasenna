@@ -10,7 +10,7 @@ import imp
 imp.load_dynamic('PersistencePython', '/home_sdb/jgrieser_tmp/anaconda3/envs/segmFr/lib/PersistencePython.so')
 from PersistencePython import cubePers
 
-def compute_persistence_2DImg(f, dimension, threshold=0.4):
+def compute_persistence_2DImg(f, dimension, threshold):
     # TODO find out how to adjust the threshold 0.4 seems to be a good value
     """
     Copied from Hu's code...
@@ -136,7 +136,7 @@ def compute_loss(force_list, idx_holes_to_fix, idx_holes_to_remove):
     return loss
 
 
-def compute_loss_and_gradient(input, target):
+def compute_loss_and_gradient(input, target, threshold):
     '''
     This is a function to parallelize the computation of the loss and gradient for each slice.
     '''
@@ -144,8 +144,8 @@ def compute_loss_and_gradient(input, target):
     #-Computation of the loss--#
     ############################
 
-    input_dgms, input_birth_cp, input_death_cp = compute_persistence_2DImg(input, dimension=1)
-    target_dgms, target_birth_cp, target_death_cp = compute_persistence_2DImg(target, dimension=1)
+    input_dgms, input_birth_cp, input_death_cp = compute_persistence_2DImg(input, dimension=1, threshold=threshold)
+    target_dgms, target_birth_cp, target_death_cp = compute_persistence_2DImg(target, dimension=1, threshold=threshold)
 
     if (input_dgms.size != 0) and (target_dgms.size != 0):
 

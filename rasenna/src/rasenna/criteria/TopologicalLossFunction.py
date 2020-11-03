@@ -18,7 +18,7 @@ class TopologicalLossFunction(Function):
     """
 
     @staticmethod
-    def forward(ctx, input, target):
+    def forward(ctx, input, target, threshold=0.4, use_multiprocessing=False):
         """
         Forward pass of topological loss function used to calculate the topological loss between input and target.
         The loss is computed separately for each slice in z-direction and then added up. 
@@ -32,22 +32,20 @@ class TopologicalLossFunction(Function):
         ctx.pred_pic = input[3]
         ctx.target_pic = 1 - target[3]
 
-        use_multiprocessing = False
-
         if use_multiprocessing == True:
             pool = mp.Pool(input.shape[0])
             print('Amount of workers:', input.shape[0])
 
             # We have to invert the ground truth (target) to be able to use persistent homology 1 - target.cpu().detach()[i]
             slices = zip(input.cpu().detach()[i], 1 - target.cpu().detach()[i])
-            results = [pool.apply(compute_loss_and_gradient, args=((input_slice, target_slice))) for input_slice, target_slice in slices]
+            results = [pool.apply(compute_loss_and_gradient, args=((input_slice, target_slice, threshold))) for input_slice, target_slice in slices]
             loss = sum([entry[0] for entry in results])
             grad_list = [torch.from_numpy(entry[1]) for entry in results]
 
         else:
             for i in range(0, len(input)):  
                 # We have to invert the values to be able to use persistent homology
-                _loss, _gradient = compute_loss_and_gradient(input.cpu().detach()[i], 1 - target.cpu().detach()[i])
+                _loss, _gradient = compute_loss_and_gradient(input.cpu().detach()[i], 1 - target.cpu().detach()[i], threshold)
                 loss += _loss
                 grad_list.append(torch.from_numpy(_gradient))
         

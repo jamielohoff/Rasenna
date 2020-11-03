@@ -28,23 +28,26 @@ class TopologicalLossFunction(Function):
         loss = 0.0
         grad_list = []
 
-        # log images boundary prob, boundary map
+        # log images boundary probability and ground truth
         ctx.pred_pic = input[3]
-        ctx.target_pic = target[3]
+        ctx.target_pic = 1 - target[3]
 
-        use_multiprocessing = True
+        use_multiprocessing = False
 
         if use_multiprocessing == True:
             pool = mp.Pool(input.shape[0])
             print('Amount of workers:', input.shape[0])
-            slices = zip(input.cpu().detach(), target.cpu().detach().cpu())
+
+            # We have to invert the ground truth (target) to be able to use persistent homology 1 - target.cpu().detach()[i]
+            slices = zip(input.cpu().detach()[i], 1 - target.cpu().detach()[i])
             results = [pool.apply(compute_loss_and_gradient, args=((input_slice, target_slice))) for input_slice, target_slice in slices]
             loss = sum([entry[0] for entry in results])
             grad_list = [torch.from_numpy(entry[1]) for entry in results]
 
         else:
-            for i in range(0, len(input)):
-                _loss, _gradient = compute_loss_and_gradient(input.cpu().detach()[i], target.cpu().detach()[i])
+            for i in range(0, len(input)):  
+                # We have to invert the values to be able to use persistent homology
+                _loss, _gradient = compute_loss_and_gradient(input.cpu().detach()[i], 1 - target.cpu().detach()[i])
                 loss += _loss
                 grad_list.append(torch.from_numpy(_gradient))
         

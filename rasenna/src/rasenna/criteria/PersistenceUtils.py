@@ -10,7 +10,8 @@ import imp
 imp.load_dynamic('PersistencePython', '/home_sdb/jgrieser_tmp/anaconda3/envs/segmFr/lib/PersistencePython.so')
 from PersistencePython import cubePers
 
-def compute_persistence_2DImg(f, dimension):
+def compute_persistence_2DImg(f, dimension, threshold=0.4):
+    # TODO find out how to adjust the threshold 0.4 seems to be a good value
     """
     Copied from Hu's code...
     compute persistence diagram in a 2D function (can be N-dim) and critical pts
@@ -19,32 +20,38 @@ def compute_persistence_2DImg(f, dimension):
     assert len(f.shape) == 2  # f has to be 2D function
     dim = 2
 
-    # pad the function with a few pixels of maximum values
-    # this way one can compute the 1D topology as loops
-    # remember to transform back to the original coordinates when finished
-    # black = 1, white = 0
-    padwidth = 2
+    # Pad the function with a few pixels of maximum values
+    # This way one can compute the 1D topology as loops
+    # Remember to transform back to the original coordinates when finished
+    # Black = 1, white = 0
+    padwidth = 5
     padvalue = min(f.min(), 0.0)
-    f_padded = np.pad(f, padwidth, 'constant', constant_values=padvalue)
+    f_padded = np.pad(f[3:-3, 3:-3], padwidth, 'constant', constant_values=padvalue)
 
-    # call persistence code to compute diagrams
-    # loads PersistencePython.so (compiled from C++); should be in current dir
+    # Call persistence code to compute diagrams
+    # Loads PersistencePython.so (compiled from C++); should be in current dir
     persistence_result = cubePers(np.reshape(
-        f_padded, f_padded.size).tolist(), list(f_padded.shape), 0.4) # TODO find out how to adjust the threshold::0.4 seems to be a good value
+        f_padded, f_padded.size).tolist(), list(f_padded.shape), threshold) 
 
-    # only take 1-dim topology, first column of persistence_result is dimension
+    # Only take 1-dim topology, first column of persistence_result is dimension
     persistence_result_filtered = np.array(list(filter(lambda x: x[0] == float(dimension), persistence_result)))
 
-    # persistence diagram (second and third columns are coordinates)
-    dgm = persistence_result_filtered[:, 1:3]
+    # Persistence diagram (second and third columns are coordinates)
+    # Check if filtration is not empty
+    if len(persistence_result_filtered.shape) < 2:
+        dgm = np.array([])
+        birth_cp_list = np.array([])
+        death_cp_list = np.array([])
+    else:
+        dgm = persistence_result_filtered[:, 1:3]
 
-    # critical points
-    birth_cp_list = persistence_result_filtered[:, 4:4 + dim]
-    death_cp_list = persistence_result_filtered[:, 4 + dim:]
+        # Critical points
+        birth_cp_list = persistence_result_filtered[:, 4:4 + dim]
+        death_cp_list = persistence_result_filtered[:, 4 + dim:]
 
-    # when mapping back, shift critical points back to the original coordinates
-    birth_cp_list = birth_cp_list - padwidth
-    death_cp_list = death_cp_list - padwidth
+        # When mapping back, shift critical points back to the original coordinates
+        birth_cp_list = birth_cp_list - padwidth + 3
+        death_cp_list = death_cp_list - padwidth + 3
 
     return dgm, birth_cp_list, death_cp_list
 
@@ -139,47 +146,54 @@ def compute_loss_and_gradient(input, target):
 
     input_dgms, input_birth_cp, input_death_cp = compute_persistence_2DImg(input, dimension=1)
     target_dgms, target_birth_cp, target_death_cp = compute_persistence_2DImg(target, dimension=1)
-    force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(input_dgms, target_dgms)
 
-    loss = compute_loss(force_list, idx_holes_to_fix, idx_holes_to_remove)
+    if (input_dgms.size != 0) and (target_dgms.size != 0):
 
-    ################################
-    #-Computation of the gradient--#
-    ################################
+        force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(input_dgms, target_dgms)
 
-    force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(input_dgms, target_dgms)
+        loss = compute_loss(force_list, idx_holes_to_fix, idx_holes_to_remove)
 
-    # each birth/death crit pt of a persistence dot to move corresponds to a row
-    # each row has 3 values: x, y coordinates, and the force (increase/decrease)
-    topo_grad = np.zeros([2 * (len(idx_holes_to_fix) + len(idx_holes_to_remove)), 3])
-    counter = 0
-    for idx in idx_holes_to_fix:
-        topo_grad[counter] = [input_birth_cp[idx, 1], input_birth_cp[idx, 0], force_list[idx, 0]]
-        counter = counter + 1
-        topo_grad[counter] = [input_death_cp[idx, 1], input_death_cp[idx, 0], force_list[idx, 1]]
-        counter = counter + 1
-    for idx in idx_holes_to_remove:
-        topo_grad[counter] = [input_birth_cp[idx, 1], input_birth_cp[idx, 0], force_list[idx, 0]]
-        counter = counter + 1
-        topo_grad[counter] = [input_death_cp[idx, 1], input_death_cp[idx, 0], force_list[idx, 1]]
-        counter = counter + 1
+        ################################
+        #-Computation of the gradient--#
+        ################################
 
-    """
-    topo_grad contains the coordinates/pixel positions of the critical points 
-    as well as the value of the gradient at the respective point in the format
-    [x, y, gradient]
-    we have to convert this into a format pytorch can use, i.e. we have to 
-    create a 2x2 matrix that contains the gradients at the respective positions
-    and uses the x,y-positions as indices
+        force_list, idx_holes_to_fix, idx_holes_to_remove = compute_dgm_force(input_dgms, target_dgms)
 
-    thus we get a [length, width]-matrix with gradients as entries
-    """
-    topo_grad[:, 2] = topo_grad[:, 2] * -2 # TODO clarify the role of the minus sign here!!!
+        # each birth/death crit pt of a persistence dot to move corresponds to a row
+        # each row has 3 values: x, y coordinates, and the force (increase/decrease)
+        topo_grad = np.zeros([2 * (len(idx_holes_to_fix) + len(idx_holes_to_remove)), 3])
+        counter = 0
+        for idx in idx_holes_to_fix:
+            topo_grad[counter] = [input_birth_cp[idx, 1], input_birth_cp[idx, 0], force_list[idx, 0]]
+            counter = counter + 1
+            topo_grad[counter] = [input_death_cp[idx, 1], input_death_cp[idx, 0], force_list[idx, 1]]
+            counter = counter + 1
+        for idx in idx_holes_to_remove:
+            topo_grad[counter] = [input_birth_cp[idx, 1], input_birth_cp[idx, 0], force_list[idx, 0]]
+            counter = counter + 1
+            topo_grad[counter] = [input_death_cp[idx, 1], input_death_cp[idx, 0], force_list[idx, 1]]
+            counter = counter + 1
 
-    gradients = np.zeros((input.shape[0], input.shape[1]))
+        """
+        topo_grad contains the coordinates/pixel positions of the critical points 
+        as well as the value of the gradient at the respective point in the format
+        [x, y, gradient]
+        we have to convert this into a format pytorch can use, i.e. we have to 
+        create a 2x2 matrix that contains the gradients at the respective positions
+        and uses the x,y-positions as indices
 
-    for pos in topo_grad:
-        gradients[int(pos[1]), int(pos[0])] = pos[2]
+        thus we get a [length, width]-matrix with gradients as entries
+        """
+        topo_grad[:, 2] = topo_grad[:, 2] * -2 # TODO clarify the role of the minussign here!
 
-    return loss, gradients
+        gradients = np.zeros((input.shape[0], input.shape[1]))
+
+        # Populate gradient matrix
+        for pos in topo_grad:
+            gradients[int(pos[1]), int(pos[0])] = pos[2]
+    else:
+        loss = 0.0
+        gradients = np.zeros((input.shape[0], input.shape[1]))
+
+    return [loss, gradients]
 

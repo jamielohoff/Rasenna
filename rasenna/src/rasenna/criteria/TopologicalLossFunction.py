@@ -17,6 +17,10 @@ class TopologicalLossFunction(Function):
     You can find the respective code under https://github.com/HuXiaoling/TopoLoss.
     """
 
+    def __init__(self, threshold=.4, use_multiprocessing=False):
+        self.threshold=threshold
+        self.use_multiprocessing=use_multiprocessing
+
     @staticmethod
     def forward(ctx, input, target, threshold=0.4, use_multiprocessing=False):
         """

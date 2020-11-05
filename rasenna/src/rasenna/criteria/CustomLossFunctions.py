@@ -32,7 +32,7 @@ class TopologicalLoss(nn.Module):
         self.g_factor = g_factor
 
         self.SDLoss = SorensenDiceLoss()
-        self.TopoLoss = TopologicalLossFunction(threshold=threshold, use_multiprocessing=use_multiprocessing).apply
+        self.TopoLoss = TopologicalLossFunction().apply
 
     def forward(self, input, target):
         """
@@ -74,7 +74,7 @@ class TopologicalBCELoss(nn.Module):
     one for all 20 channels and one acting only on the first three channels to compute boundary probabilities.
     `input_or_target.size(1) = num_channels`.
     """
-    def __init__(self, g_factor, weight=None, channelwise=True, eps=1e-6):
+    def __init__(self, g_factor, threshold=0.4, use_multiprocessing=False, weight=None, channelwise=True, eps=1e-6):
         """
         Parameters
         ----------
@@ -93,7 +93,7 @@ class TopologicalBCELoss(nn.Module):
         self.g_factor = g_factor
 
         self.BCELoss = nn.BCELoss(weight=weight)
-        self.TopoLoss = TopologicalLossFunction.apply
+        self.TopoLoss = TopologicalLossFunction(threshold=threshold, use_multiprocessing=use_multiprocessing).apply
 
     def forward(self, input, target):
         """

@@ -17,10 +17,6 @@ class TopologicalLossFunction(Function):
     You can find the respective code under https://github.com/HuXiaoling/TopoLoss.
     """
 
-    def __init__(self, threshold=.4, use_multiprocessing=False):
-        self.threshold=threshold
-        self.use_multiprocessing=use_multiprocessing
-
     @staticmethod
     def forward(ctx, input, target):
         """
@@ -29,6 +25,10 @@ class TopologicalLossFunction(Function):
         Not only does the algorithm calculate the loss, but it does also calculate the critical points, 
         i.e. the points that --probably-- need to be fixed to get the right number of holes and thus reduce the loss.
         """
+        # TODO make these parameters available in the loss function
+        threshold = .4
+        use_multiprocessing = False
+
         loss = 0.0
         grad_list = []
 
@@ -36,20 +36,20 @@ class TopologicalLossFunction(Function):
         ctx.pred_pic = input[3]
         ctx.target_pic = 1 - target[3]
 
-        if self.use_multiprocessing == True:
+        if use_multiprocessing == True:
             pool = mp.Pool(input.shape[0])
             print('Amount of workers:', input.shape[0])
 
             # We have to invert the ground truth (target) to be able to use persistent homology 1 - target.cpu().detach()[i]
             slices = zip(input.cpu().detach()[i], 1 - target.cpu().detach()[i])
-            results = [pool.apply(compute_loss_and_gradient, args=((input_slice, target_slice, self.threshold))) for input_slice, target_slice in slices]
+            results = [pool.apply(compute_loss_and_gradient, args=((input_slice, target_slice, threshold))) for input_slice, target_slice in slices]
             loss = sum([entry[0] for entry in results])
             grad_list = [torch.from_numpy(entry[1]) for entry in results]
 
         else:
             for i in range(0, len(input)):  
                 # We have to invert the values to be able to use persistent homology
-                _loss, _gradient = compute_loss_and_gradient(input.cpu().detach()[i], 1 - target.cpu().detach()[i], self.threshold)
+                _loss, _gradient = compute_loss_and_gradient(input.cpu().detach()[i], 1 - target.cpu().detach()[i], threshold)
                 loss += _loss
                 grad_list.append(torch.from_numpy(_gradient))
         
@@ -65,11 +65,13 @@ class TopologicalLossFunction(Function):
         We again calculate each gradient separately for each slice and then merge them into one 3d voxel, which is then used for backpropagation.
         """ 
         grad = ctx.grad_list[3].cuda()
+        pos_grad = torch.where(grad > 0, grad, torch.zeros_like(grad))
+        neg_grad = torch.where(grad < 0, grad, torch.zeros_like(grad))
         indices = torch.nonzero(grad, as_tuple=True)
         pic = ctx.pred_pic.index_put(indices=indices, values=torch.tensor(0.0))
 
-        red_pic = pic + grad
-        green_pic = pic
+        red_pic = pic + pos_grad
+        green_pic = pic - neg_grad
         blue_pic = pic
         rgb_in_pic = [red_pic.float(), green_pic.float(), blue_pic.float()]
 

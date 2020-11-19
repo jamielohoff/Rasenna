@@ -32,7 +32,7 @@ class TopologicalLoss(nn.Module):
         self.g_factor = g_factor
 
         self.SDLoss = SorensenDiceLoss()
-        self.TopoLoss = TopologicalLossFunction().apply
+        self.TopoLoss = TopologicalLossFunction.apply
 
     def forward(self, input, target):
         """
@@ -48,11 +48,11 @@ class TopologicalLoss(nn.Module):
 
         if self.g_factor != 0.0:
             boundary_map = torch.bitwise_or(target[0,0,:,:,:].bool(), target[0,1,:,:,:].bool())
-            boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool()).float()
-            boundary_prob = (1/3) * (input[0,0,:,:,:] + input[0,1,:,:,:] + input[0,2,:,:,:])
+            boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool()).float().detach()
+            boundary_prob = (1/3) * (input[0,0,:,:,:] + input[0,1,:,:,:] + input[0,2,:,:,:]).detach()
 
-            # We have to put a minus sign here, see https://www.jeremyjordan.me/semantic-segmentation/
-            sorensen_dice_loss = -1 * self.SDLoss(input, target)
+            # We have to not put a minus sign here, otherwise computation screws up
+            sorensen_dice_loss = self.SDLoss(input, target)
             topological_loss = self.TopoLoss(boundary_prob, boundary_map).cuda()
 
             # Logging of the different losses in tensorboardX
@@ -62,7 +62,7 @@ class TopologicalLoss(nn.Module):
             loss = sorensen_dice_loss + self.g_factor * topological_loss
             print('Topological Loss:', topological_loss, 'Sorensen-Dice Loss:', sorensen_dice_loss, "Loss:", loss)
         else:
-            loss = -1 * self.SDLoss(input, target)
+            loss = self.SDLoss(input, target)
             log_scalar('training_loss/SorensenDice', loss)
             print("Sorensen-Dice Loss:", loss)
 
@@ -93,7 +93,7 @@ class TopologicalBCELoss(nn.Module):
         self.g_factor = g_factor
 
         self.BCELoss = nn.BCELoss(weight=weight)
-        self.TopoLoss = TopologicalLossFunction(threshold=threshold, use_multiprocessing=use_multiprocessing).apply
+        self.TopoLoss = TopologicalLossFunction.apply
 
     def forward(self, input, target):
         """
@@ -106,10 +106,9 @@ class TopologicalBCELoss(nn.Module):
         loss = 0.0
 
         boundary_map = torch.bitwise_or(target[0,0,:,:,:].bool(), target[0,1,:,:,:].bool())
-        boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool())
-        boundary_prob = (1/3) * (input[0,0,:,:,:] + input[0,1,:,:,:] + input[0,2,:,:,:])
+        boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool()).detach
+        boundary_prob = (1/3) * (input[0,0,:,:,:] + input[0,1,:,:,:] + input[0,2,:,:,:]).detach
 
-        # we have to put a minus sign here, see https://www.jeremyjordan.me/semantic-segmentation/
         binary_cross_entropy_loss = self.BCELoss(input.flatten(), target.flatten())
         topological_loss = self.TopoLoss(boundary_prob, boundary_map.float()).cuda()
 
@@ -157,14 +156,14 @@ class TopologicalLossLogged(nn.Module):
         loss = 0.0
 
         boundary_map = torch.bitwise_or(target[0,0,:,:,:].bool(), target[0,1,:,:,:].bool())
-        boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool())
-        boundary_prob = (1/3) * (input[0,0,:,:,:] + input[0,1,:,:,:] + input[0,2,:,:,:])
+        boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool()).detach().float()
+        boundary_prob = (1/3) * (input[0,0,:,:,:] + input[0,1,:,:,:] + input[0,2,:,:,:]).detach()
 
-        # we have to put a minus sign here, see https://www.jeremyjordan.me/semantic-segmentation/
-        sorensen_dice_loss = -1 * self.SDLoss(input, target)
-        topological_loss = self.TopoLoss(boundary_prob, boundary_map.float()).cuda()
+        # We have to not put a minus sign here, otherwise computation screws up
+        sorensen_dice_loss = self.SDLoss(input, target)
+        topological_loss = self.TopoLoss(boundary_prob, boundary_map).cuda().detach()
 
-        # logging of the different losses in tensorboardX
+        # Logging of the different losses in tensorboardX
         log_scalar('training_loss/SorensenDice', sorensen_dice_loss)
         log_scalar('training_loss/Topological', topological_loss)
         

@@ -184,7 +184,7 @@ def compute_loss_and_gradient(input, target, threshold):
 
         thus we get a [length, width]-matrix with gradients as entries
         """
-        topo_grad[:, 2] = topo_grad[:, 2] * -2 # TODO clarify the role of the minussign here!
+        topo_grad[:, 2] = topo_grad[:, 2] * 2
 
         gradients = np.zeros((input.shape[0], input.shape[1]))
 

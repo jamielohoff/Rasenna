@@ -4,7 +4,7 @@ import torch
 import time
 from inferno.extensions.criteria.set_similarity_measures import SorensenDiceLoss
 from rasenna.criteria.TopologicalLossFunction import TopologicalLossFunction
-from speedrun.log_anywhere import log_scalar
+from speedrun.log_anywhere import log_scalar, log_image
 from rasenna.criteria.Subdivision import SubdivisionLossFunction
 
 class TopologicalLoss(nn.Module):
@@ -35,6 +35,7 @@ class TopologicalLoss(nn.Module):
         self.TopoLoss = TopologicalLossFunction.apply
 
     def forward(self, input, target):
+        print(target.size())
         """
         Parameters
         ----------
@@ -44,25 +45,45 @@ class TopologicalLoss(nn.Module):
 
         Calculates the weighted sum of Sorensen-Dice loss and topological loss.
         """
+
+        # TODO wrap this
+        target = target[:, 1:, :, :, :]
+
+        seperating_channel = target.size(1) // 2
+        mask = target[:, seperating_channel:]
+        target = target[:, :seperating_channel]
+        mask.requires_grad = False
+
+        # if self.first_invert_prediction:
+        # prediction = 1. - prediction
+        target = 1. - target
+        # input = 1. - input
+
+        # mask prediction and target with mask
+        # prediction = prediction * mask
+        target = target * mask
+
         loss = 0.0
 
         if self.g_factor != 0.0:
             boundary_map = torch.bitwise_or(target[0,0,:,:,:].bool(), target[0,1,:,:,:].bool())
             boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool()).float().detach()
-            boundary_prob = (1/3) * (input[0,0,:,:,:] + input[0,1,:,:,:] + input[0,2,:,:,:]).detach()
+            boundary_prob = input[1][0, 0, :, :, :].detach()# (1/3) * (input[0][0,0,:,:,:] + input[0][0,1,:,:,:] + input[0][0,2,:,:,:]).detach()
+
+            log_image('output/prediction', torch.stack([boundary_prob[3]], dim=0))
 
             # We have to not put a minus sign here, otherwise computation screws up
-            sorensen_dice_loss = self.SDLoss(input, target)
+            sorensen_dice_loss = self.SDLoss(input[0], target)
             topological_loss = self.TopoLoss(boundary_prob, boundary_map).cuda()
 
             # Logging of the different losses in tensorboardX
             log_scalar('training_loss/SorensenDice', sorensen_dice_loss)
             log_scalar('training_loss/Topological', topological_loss)
-            
+
             loss = sorensen_dice_loss + self.g_factor * topological_loss
             print('Topological Loss:', topological_loss, 'Sorensen-Dice Loss:', sorensen_dice_loss, "Loss:", loss)
         else:
-            loss = self.SDLoss(input, target)
+            loss = self.SDLoss(input[0], target)
             log_scalar('training_loss/SorensenDice', loss)
             print("Sorensen-Dice Loss:", loss)
 

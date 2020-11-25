@@ -1,13 +1,12 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch
 import time
 import math
 from torch.autograd import Function
 from .PersistenceUtils import compute_loss_and_gradient
-from speedrun.log_anywhere import log_scalar, log_image
 import multiprocessing as mp
-from .utils import draw_arrows
 
 class TopologicalLossFunction(Function):
     """
@@ -32,10 +31,6 @@ class TopologicalLossFunction(Function):
         loss = 0.0
         grad_list = []
 
-        # log images boundary probability and ground truth
-        ctx.pred_pic = input[3]
-        ctx.target_pic = target[3]
-
         if use_multiprocessing == True:
             pool = mp.Pool(input.shape[0])
             print('Amount of workers:', input.shape[0])
@@ -53,37 +48,22 @@ class TopologicalLossFunction(Function):
                 loss += _loss
                 grad_list.append(torch.from_numpy(_gradient))
         
+        #print(input_dgms_list[3])
         ctx.grad_list = grad_list
+
+        # white = 1 = boundary
+        # black = 0 = other stuff
 
         return torch.tensor(loss)
 
     @staticmethod
     def backward(ctx, grad_output):
         """
+        TODO adjust documentation
         Backward pass of topological loss used to calculate the gradient of the topological loss function.
         To calculate the gradient, we need the critical points and their position in the 2d image.
         We again calculate each gradient separately for each slice and then merge them into one 3d voxel, which is then used for backpropagation.
-        """ 
-        # white = 1 = boundary
-        # black = 0 = other stuff
-
-        grad = ctx.grad_list[3].cuda()
-        pos_grad = torch.where(grad > 0, grad, torch.zeros_like(grad))
-        neg_grad = torch.where(grad < 0, grad, torch.zeros_like(grad))
-        indices = torch.nonzero(grad, as_tuple=True)
-        pic = ctx.pred_pic.index_put(indices=indices, values=torch.tensor(0.0))
-
-        red_pic = pic - neg_grad
-        green_pic = pic + pos_grad
-        blue_pic = pic
-        rgb_in_pic = [red_pic.float(), green_pic.float(), blue_pic.float()]
-
-        print('Drawing arrows!')
-        rgb_in_pic = draw_arrows(rgb_in_pic, indices, [0,0,1], shape='up')
-
-        log_image('output/prediction_and_gradient', torch.stack(rgb_in_pic, dim=0))
-        log_image('output/target', torch.stack([ctx.target_pic], dim=0))
-        
+        """         
         # Stack all gradients along z-direction
         return torch.stack(ctx.grad_list, dim=0).cuda(), None
 

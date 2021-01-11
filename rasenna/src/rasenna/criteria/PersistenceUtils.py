@@ -148,6 +148,7 @@ def compute_loss_and_gradient(input, target, threshold):
         ################################
         #-Computation of the gradient--#
         ################################
+        
         # each birth/death crit pt of a persistence dot to move corresponds to a row
         # each row has 3 values: x, y coordinates, and the force (increase/decrease)
         topo_grad = np.zeros([2 * (len(idx_holes_to_fix) + len(idx_holes_to_remove)), 4])

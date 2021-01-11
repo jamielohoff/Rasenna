@@ -6,6 +6,7 @@ from inferno.extensions.criteria.set_similarity_measures import SorensenDiceLoss
 from rasenna.criteria.TopologicalLossFunction import TopologicalLossFunction
 from speedrun.log_anywhere import log_scalar, log_image
 from rasenna.criteria.Subdivision import SubdivisionLossFunction
+from rasenna.criteria.utils import prepare_target
 
 class TopologicalLoss(nn.Module):
     """
@@ -35,7 +36,6 @@ class TopologicalLoss(nn.Module):
         self.TopoLoss = TopologicalLossFunction.apply
 
     def forward(self, input, target):
-        print(target.size())
         """
         Parameters
         ----------
@@ -45,39 +45,29 @@ class TopologicalLoss(nn.Module):
 
         Calculates the weighted sum of Sorensen-Dice loss and topological loss.
         """
-
-        # TODO wrap this
-        target = target[:, 1:, :, :, :]
-
-        seperating_channel = target.size(1) // 2
-        mask = target[:, seperating_channel:]
-        target = target[:, :seperating_channel]
-        mask.requires_grad = False
-
-        # if self.first_invert_prediction:
-        # prediction = 1. - prediction
-        target = 1. - target
-        # input = 1. - input
-
-        # mask prediction and target with mask
-        # prediction = prediction * mask
-        target = target * mask
-
+        boundary = target[1] # target for topological part
+        target, boundary_mask, boundary_contour = prepare_target(target[0])
         loss = 0.0
 
         if self.g_factor != 0.0:
-            boundary_map = torch.bitwise_or(target[0,0,:,:,:].bool(), target[0,1,:,:,:].bool())
-            boundary_map = torch.bitwise_or(boundary_map, target[0,2,:,:,:].bool()).float().detach()
-            boundary_prob = input[1][0, 0, :, :, :].detach()# (1/3) * (input[0][0,0,:,:,:] + input[0][0,1,:,:,:] + input[0][0,2,:,:,:]).detach()
+            b_map = boundary[0,0,:,:,:].float().detach().cpu()
+            maximum = torch.max(b_map)
+            boundary_map = torch.where(b_map < maximum, torch.tensor(0.0), torch.tensor(1.0)).detach()
+            boundary_prob = input[1][0, 0, :, :, :].cpu() * boundary_mask.cpu() + boundary_contour
 
-            log_image('output/prediction', torch.stack([boundary_prob[3]], dim=0))
+            log_image('output/test', boundary_contour[3])
 
             # We have to not put a minus sign here, otherwise computation screws up
-            sorensen_dice_loss = self.SDLoss(input[0], target)
+            sorensen_dice_loss = 20 + self.SDLoss(input[0], target)
+            boundary_prob_ax = torch.stack([boundary_prob], dim=0)
+            boundary_map_ax = torch.stack([boundary_map], dim=0)
+            topo_sorensen_dice_loss = 1 + self.SDLoss(boundary_prob_ax, boundary_map_ax).detach()
+            print(boundary_prob.shape, boundary_map.shape, input[0].shape, target.shape)
             topological_loss = self.TopoLoss(boundary_prob, boundary_map).cuda()
 
             # Logging of the different losses in tensorboardX
             log_scalar('training_loss/SorensenDice', sorensen_dice_loss)
+            log_scalar('training_loss/SorensenDiceTopo', topo_sorensen_dice_loss)
             log_scalar('training_loss/Topological', topological_loss)
 
             loss = sorensen_dice_loss + self.g_factor * topological_loss
@@ -249,3 +239,4 @@ class SubdivisionLoss(nn.Module):
         print('Topological Loss:', topological_loss, 'Sorensen-Dice Loss:', sorensen_dice_loss, "Loss:", loss)
 
         return loss
+

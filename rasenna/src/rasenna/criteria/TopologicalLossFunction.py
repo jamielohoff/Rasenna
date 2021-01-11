@@ -48,11 +48,7 @@ class TopologicalLossFunction(Function):
                 loss += _loss
                 grad_list.append(torch.from_numpy(_gradient))
         
-        #print(input_dgms_list[3])
         ctx.grad_list = grad_list
-
-        # white = 1 = boundary
-        # black = 0 = other stuff
 
         return torch.tensor(loss)
 
@@ -65,5 +61,5 @@ class TopologicalLossFunction(Function):
         We again calculate each gradient separately for each slice and then merge them into one 3d voxel, which is then used for backpropagation.
         """         
         # Stack all gradients along z-direction
-        return torch.stack(ctx.grad_list, dim=0).cuda(), None
+        return torch.stack(ctx.grad_list, dim=0), None
 

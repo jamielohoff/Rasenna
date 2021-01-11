@@ -2,6 +2,7 @@ import torch
 import numpy as np 
 import scipy as scp
 import matplotlib.pyplot as plt
+import cv2
 from speedrun.log_anywhere import log_scalar, log_image, log_figure
 
 def draw_dots(image, grad):
@@ -57,6 +58,7 @@ def draw_arrows_and_persistence_diagram(input, target, topo_grad):
     # white = 1 = boundary
     # black = 0 = other stuff
     rgb_in_pic = [1 - input, 1 - input, 1 - input]
+    log_image('output/prediction', torch.stack(rgb_in_pic, dim=0))
 
     fig, ax = plt.subplots()
     x = np.linspace(0, 1.0, 5)
@@ -76,6 +78,35 @@ def draw_arrows_and_persistence_diagram(input, target, topo_grad):
         ax.scatter(topo_grad[i,3], topo_grad[i+1,3], color=(color[0], color[1], color[2]))
 
     log_image('output/prediction_and_gradient', torch.stack(rgb_in_pic, dim=0))
-    log_image('output/target', torch.stack([1 - target], dim=0))
     log_figure('output/barcodes', fig)
+    log_image('output/target', torch.stack([1 - target], dim=0))
+
+def prepare_target(target):
+    # TODO more documentation
+    # Create boundary mask from 0th channel to drop parts outside
+    # the boundary from the topology computation
+    boundary_mask = torch.where(target[:, 0, :, :, :].cpu() >= 1.0, torch.tensor(1.0), torch.tensor(0.0))
+    contours = get_contours(boundary_mask)
+
+    target = target[:, 1:, :, :, :]
+    seperating_channel = target.size(1) // 2
+    mask = target[:, seperating_channel:]
+    target = target[:, :seperating_channel]
+    mask.requires_grad = False
+
+    # if self.first_invert_prediction:
+    target = 1. - target
+
+    # mask prediction and target with mask
+    return target * mask, boundary_mask[0], contours
+
+def get_contours(input):
+    contours = []
+    for i in range(input.shape[1]):
+        img = np.zeros((input.shape[2], input.shape[3]))
+        contour, hierarchy = cv2.findContours(input[0, i].numpy().astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        cv2.drawContours(img, contour, -1, (1, 1, 1), -8)
+        contours.append(torch.from_numpy(img))
+    return torch.stack(contours, dim=0)
+
 

@@ -16,4 +16,8 @@ numpy==1.13.3
 scipy==1.0
 inferno
 h5py
+torch
+matplotlib 
+cv2
+multiprocessing
 

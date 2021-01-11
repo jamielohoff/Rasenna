@@ -55,7 +55,7 @@ class TopologicalLoss(nn.Module):
             boundary_map = torch.where(b_map < maximum, torch.tensor(0.0), torch.tensor(1.0)).detach()
             boundary_prob = input[1][0, 0, :, :, :].cpu() * boundary_mask.cpu() + boundary_contour
 
-            log_image('output/test', boundary_contour[3])
+            log_image('output/test', torch.stack([boundary_contour[3]]))
 
             # We have to not put a minus sign here, otherwise computation screws up
             sorensen_dice_loss = 20 + self.SDLoss(input[0], target)

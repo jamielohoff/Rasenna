@@ -7,6 +7,10 @@ from torch.autograd import Function
 from .PersistenceUtils import compute_persistence_2DImg, compute_dgm_force
 
 
+# --------------------------------------------------- #
+# Code has never been used or refactored!
+# --------------------------------------------------- #
+
 class SubdivisionLossFunction(Function):
     """
     This loss-function calculates the topological loss of a gray-scale image/input in 2.5 dimensions, 
@@ -154,7 +158,7 @@ def compute_gradient(list_slice, x_size, y_size):
 
     thus we get a [length, width]-matrix with gradients as entries
     """
-    topo_grad[:, 2] = topo_grad[:, 2] * 2 # TODO clarify the role of the minus sign here!!!
+    topo_grad[:, 2] = topo_grad[:, 2] * 2
 
     gradients = np.zeros((x_size, y_size))
 

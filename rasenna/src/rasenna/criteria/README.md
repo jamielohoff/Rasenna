@@ -31,9 +31,9 @@ model_kwargs:
 ```
 Note that if you use our fork of the segmfriends package, these configurations are already provided and it should run out of the box.
 
-## Training
+# Training
 
-# Simple Training
+## Simple Training
 After the setup is complete, we want to run an experiment. Assuming that all paths in the .yml config have been configured properly, such that the dataloaders find the HDF5 cremi files, we can start training by switching to the ```segmfriends``` base directory and use:
 ```shell
 CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/train_affinities.py <your experiment name> --inherit <config name>.yml

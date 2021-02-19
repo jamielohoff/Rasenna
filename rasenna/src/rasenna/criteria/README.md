@@ -40,6 +40,7 @@ CUDA_VISIBLE_DEVICES=<device id> python experiments/cremi/train_affinities.py <y
 Weights, logging etc. are saved to ```segmfriends/experiments/cremi/runs/<your experiment name>```. The logging can be accessed via tensorboard.
 If our fork of segmfriends is used, the following configuration files are provided, which should work out of the box:
 | Name | What it does|
+|-----|---------------------------------------------------|
 |SD_train_affs_multiout.yml| The basic configuration file to make everything work |
 |SD_train_affs_2D.yml|A configuration which only uses affinities in the  xy-plane, such that slices cannot exchange information. |
 

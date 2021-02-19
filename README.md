@@ -18,7 +18,9 @@ Install all those packages in the given order
 ## Installation of Rasenna
 
 The Rasenna package is installed using three simple steps after cloning:
-1. Go to the directory and run ```python setup.py develop``` - note that it will only work in the "develop" mode
+1. Go to the directory ```rasenna/``` and run ```python setup.py develop``` - note that it will only work in the "develop" mode due to step 2
+2. Next, got to the directory ```cPers/cPers/``` and run ```./compile_pers_lib.sh``` - this will compile the code required to calculate the persistent homology, which is written in C++ and has been copied from the following project: https://github.com/HuXiaoling/TopoLoss
+3. Lastly, got to ```rasenna/src/rasenna/criteria``` and check if there is a file named ```PersistencePython.so``` - this is the library that will provide the C++-functions to the python code.
 
 # Usage
 

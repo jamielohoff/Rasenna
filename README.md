@@ -1,5 +1,5 @@
 # Rasenna
-Project that aims to use topological methods for image segmentation/boundary detection on the Cremi dataset. It uses a Unet as backbone with two output branches.
+Project that aims to use topological methods for image segmentation/boundary detection on the Cremi dataset. It uses a UNet as backbone with two output branches.
 One is used for affinity segmentation and one is used for topological boundary prediction. One could, in principle, also use this package for other applications involving topology.
 
 
@@ -17,7 +17,8 @@ Install all those packages in the given order
 
 ## Installation of Rasenna
 
-The Rasenna package of 
+The Rasenna package is installed using three simple steps after cloning:
+1. Go to the directory and run "python setup.py develop" - note that it will only work in the "develop" mode
 
 # Usage
 

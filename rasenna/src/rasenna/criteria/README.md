@@ -58,5 +58,10 @@ CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/train_affinities.py <y
 would change the weight of the topological loss to 0.5.
 
 ### Pretraining
+To pretrain a network using only the affinities channel and Sorensen-Dice and no topological loss, set ```"pretraining": True``` in the criterion keyword arguments.
+When the pretraining is complete, you can use the pretrained model by loading it from a checkpoint.
 
 ## Inference
+
+TBD
+

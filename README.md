@@ -1,5 +1,5 @@
 # Information
-The will no longer be maintained.
+The project will no longer be maintained.
 
 # Rasenna
 Project that aims to use topological methods for image segmentation/boundary detection on the Cremi dataset. It uses a UNet as backbone with two output branches.

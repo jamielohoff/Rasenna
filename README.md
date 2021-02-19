@@ -37,10 +37,15 @@ Once the project is properly installed, the usage is simple:
 4. Now you can apply the loss to tensors of 2D images. Note that we calculate only 1D homologies along the z-direction, i.e. we slice the image tensor along the z-direction and look at the 2D slices and analyze their topological features.
 5. We have implemented also a backward pass. Therefore the loss is fully differentiable and can be used for backpropagation.
 
-For an extensive example, look at the file ```CustomLossFunction.py``` in the ```criteria``` directory. It uses a combination of Sorensen-Dice and topological loss in the segmfriends and inferno framework to predict the boundaries of the cremi dataset.
+For an extensive example, look at the file ```CustomLossFunction.py``` in the ```criteria``` directory. It uses a combination of Sorensen-Dice and topological loss in the segmfriends and inferno framework to predict the boundaries of the cremi dataset. The details of the usage are documented in the ```criteria``` directory.
 
 # Other Content of the Package
 
+The package contains the code for Rasenna itself as well as the cPers library for persistence computation. 
+In the Rasenna packages, there are several subdirectories:
+```rasenna/src/rasenna/utils``` contains a bunch of tools to create a HDF5 volume from the Cremi dataset containing the boundaries for usage with the segmfriends package.
+```rasenna/src/rasenna/criteria``` contains the implementation of the loss function, an example usage with segmfriends, some utils for the persistence calculation and some logging tools.
 
 # Aknowledgements
-
+We want to thank the user https://github.com/HuXiaoling for his implementation of a topological loss using cubical complexes in pytorch. In essence, we just heavily modified his code for our purpose.
+Also, we want to tank https://github.com/abailoni/ for providing the segmfriends package and his extensive help and counseling in getting it to run in our usecase.

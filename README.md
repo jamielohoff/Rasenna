@@ -18,7 +18,7 @@ Install all those packages in the given order
 ## Installation of Rasenna
 
 The Rasenna package is installed using three simple steps after cloning:
-1. Go to the directory and run "python setup.py develop" - note that it will only work in the "develop" mode
+1. Go to the directory and run ```python setup.py develop``` - note that it will only work in the "develop" mode
 
 # Usage
 

@@ -36,7 +36,7 @@ Note that if you use our fork of the segmfriends package, these configurations a
 ### Simple Training
 After the setup is complete, we want to run an experiment. Assuming that all paths in the .yml config have been configured properly, such that the dataloaders find the HDF5 cremi files, we can start training by switching to the ```segmfriends``` base directory and use:
 ```
-CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/train_affinities.py <your experiment name><br/>  --inherit <config name>.yml
+CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/train_affinities.py <your experiment name> --inherit <config name>.yml
 ```
 Weights, checkpoints, logging etc. are saved to ```segmfriends/experiments/cremi/runs/<your experiment name>```. The logging can be accessed via tensorboard.
 If our fork of segmfriends is used, the following configuration files are provided, which should work out of the box:
@@ -48,13 +48,13 @@ If our fork of segmfriends is used, the following configuration files are provid
 ### Checkpointing
 
 To resume/start a training from a given checkpoint, use
-```shell
+```
 CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/train_affinities.py <your new experiment name> 
 --inherit <your new config name>.yml 
 --config.model.model_kwargs.loadfrom <path/to/pytorch checkpoint file>
 ```
 One could also use configflags instead of an entirely new configuration file if only one or two parameters change, e.g. 
-```shell
+```
 CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/train_affinities.py <your new experiment name> 
 --inherit <config name>.yml --config.model.model_kwargs.loadfrom <path/to/pytorch checkpoint file> --config.model.criterion.kwargs.topo_weight 0.5
 ```
@@ -67,7 +67,7 @@ When the pretraining is complete, you can use the pretrained model by loading it
 ## Inferencing
 
 If your model has converged, you can run the inferencing algorthm by executing
-```shell
+```
 CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/infer.py <name of your inferencing run> 
 --inherit <path/to/your/pytorch/checkpoint> --update0 <your inference config name>.yml --config.inference.index_output 1 --config.inference.threshold 0.5
 ```

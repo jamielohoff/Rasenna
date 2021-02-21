@@ -49,11 +49,14 @@ If our fork of segmfriends is used, the following configuration files are provid
 
 To resume/start a training from a given checkpoint, use
 ```shell
-CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/train_affinities.py <your new experiment name> --inherit <your new config name>.yml --config.model.model_kwargs.loadfrom <path/to/pytorch checkpoint file>
+CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/train_affinities.py <your new experiment name> 
+--inherit <your new config name>.yml 
+--config.model.model_kwargs.loadfrom <path/to/pytorch checkpoint file>
 ```
 One could also use configflags instead of an entirely new configuration file if only one or two parameters change, e.g. 
 ```shell
-CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/train_affinities.py <your new experiment name> --inherit <config name>.yml --config.model.model_kwargs.loadfrom <path/to/pytorch checkpoint file> --config.model.criterion.kwargs.topo_weight = 0.5
+CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/train_affinities.py <your new experiment name> 
+--inherit <config name>.yml --config.model.model_kwargs.loadfrom <path/to/pytorch checkpoint file> --config.model.criterion.kwargs.topo_weight 0.5
 ```
 would change the weight of the topological loss to 0.5.
 
@@ -65,7 +68,8 @@ When the pretraining is complete, you can use the pretrained model by loading it
 
 If your model has converged, you can run the inferencing algorthm by executing
 ```shell
-CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/infer.py <name of your inferencing run> --inherit <path/to/your/pytorch/checkpoint> --update0 <your inference config name>.yml --config.inference.index_output 1 --config.inference.threshold 0.5
+CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/infer.py <name of your inferencing run> 
+--inherit <path/to/your/pytorch/checkpoint> --update0 <your inference config name>.yml --config.inference.index_output 1 --config.inference.threshold 0.5
 ```
 in the ```segmfriends``` parent directory. This code predicts a given dataset using your trained network and outputs a score using connected components.
 When you use our segmfriends package, there is a file called ``` infer_config.yml ``` which is used to configure the inference. Most of the parameters are self-explanatory or explained in the comments.

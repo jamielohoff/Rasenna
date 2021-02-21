@@ -33,7 +33,7 @@ The compiling scipt is in essence just executing a ```g++``` command and linking
 Once the project is properly installed, the usage is simple:
 1. Just import the package: ```python import rasenna```
 2. The file ```TopologicalLossFunction.py``` contains a class inherits from pytorchs "Function" interface and has the backward and forward pass already implemented. 
-3. To use the loss, just create an instance of this function using ```python TopoLoss = TopologicalLossFunction.apply```
+3. To use the loss, just create an instance of this function using ```TopoLoss = TopologicalLossFunction.apply```
 4. Now you can apply the loss to tensors of 2D images. Note that we calculate only 1D homologies along the z-direction, i.e. we slice the image tensor along the z-direction and look at the 2D slices and analyze their topological features.
 5. We have implemented also a backward pass. Therefore the loss is fully differentiable and can be used for backpropagation.
 

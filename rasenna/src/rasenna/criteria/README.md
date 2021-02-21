@@ -61,7 +61,11 @@ would change the weight of the topological loss to 0.5.
 To pretrain a network using only the affinities channel and Sorensen-Dice and no topological loss, set ```"pretraining": True``` in the criterion keyword arguments.
 When the pretraining is complete, you can use the pretrained model by loading it from a checkpoint.
 
-## Inference
+## Inferencing
 
-TBD
-
+If your model has converged, you can run the inferencing algorthm by executing
+```shell
+CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/infer.py <name of your inferencing run> --inherit <path/to/your/pytorch/checkpoint> --update0 <your inference config name>.yml --config.inference.index_output 1 --config.inference.threshold 0.5
+```
+in the ```segmfriends``` parent directory. This code predicts a given dataset using your trained network and outputs a score using connected components.
+When you use our segmfriends package, there is a file called ``` infer_config.yml ``` which is used to configure the inference. Most of the parameters are self-explanatory or explained in the comments.

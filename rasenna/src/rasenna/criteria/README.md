@@ -70,8 +70,7 @@ When the pretraining is complete, you can use the pretrained model by loading it
 
 If your model has converged, you can run the inferencing algorthm by executing
 ```
-CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/infer.py <name of your inferencing run> 
---
+CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/infer.py --
 --inherit <experiment name> 
 --update0 <your inference config name>.yml 
 --config.inference.index_output 1 

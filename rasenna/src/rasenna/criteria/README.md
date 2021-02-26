@@ -84,8 +84,8 @@ The program expects the inherited experiment to be contained in a folder under `
 The option ```--config.inference.index_output <index>``` specified, which one of the two output branches are used in the analysis. 
 | Index | Branch| Meaningful Name |
 |-----|---------------------------------------------------| ----------|
-| 0 | use boundary branch, i.e. the branch where the topological loss was applied | BB (boundary branch) |
-| 1 | use the affinity branch, i.e. the branch where affinites have been used for computation | OB (original branch) |
+| 1 | use boundary branch, i.e. the branch where the topological loss was applied | BB (boundary branch) |
+| 0 | use the affinity branch, i.e. the branch where affinites have been used for computation | OB (original branch) |
 
 For more information on inference, the [cremi_python](https://github.com/elmo0082/cremi_python) package provides some examples on how to do inferencing using the provided tools.
 

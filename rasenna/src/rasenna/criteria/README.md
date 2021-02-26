@@ -78,6 +78,9 @@ CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/infer.py <meaningful n
 ```
 in the ```segmfriends``` parent directory. This code predicts a given dataset using your trained network and outputs a score using connected components.
 When you use our segmfriends package, there is a file called ``` infer_config.yml ``` which is used to configure the inference. Most of the parameters are self-explanatory or explained in the comments.
+
+The program expects the inherited experiment to be contained in a folder under ``` segmfriends/experiments/cremi/runs/<experiment name> ``` .
+
 The option ```--config.inference.index_output <index>``` specified, which one of the two output branches are used in the analysis. 
 | Index | Branch| Meaningful Name |
 |-----|---------------------------------------------------| ----------|
@@ -86,6 +89,8 @@ The option ```--config.inference.index_output <index>``` specified, which one of
 
 For more information on inference, the [cremi_python](https://github.com/elmo0082/cremi_python) package provides some examples on how to do inferencing using the provided tools.
 
-## Analying the Inference Output
 
 
+## Analyzing the Inference Output
+
+You can use various data science and engineering tools to analyze the output data, which can be found in the ```segmfriends/experiments/cremi/runs/<experiment name>_<meaningful name>_inference``` directory. There, you will find a file named ``` predictions_<sample name>.h5 ``` which contains the segmentation as a .h5 file which is best analyzed with ```h5py``` .

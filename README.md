@@ -22,7 +22,7 @@ Install all those packages in the given order.
 Before we can install the package, we have to install the packages ```opencv``` and ```tensorboardX``` using
 ```shell
 conda install -c conda-forge tensorboardX opencv
-```.
+```
 The package opencv provides tools for image processing.
 
 The Rasenna package is installed using three simple steps after cloning:

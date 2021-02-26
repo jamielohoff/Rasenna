@@ -3,7 +3,7 @@ import numpy as np
 import scipy as scp
 import matplotlib.pyplot as plt
 import cv2
-from speedrun.log_anywhere import log_scalar, log_image, log_figure, log_persistence_diagram
+from speedrun.log_anywhere import log_scalar, log_image, log_persistence_diagram
 
 
 def draw_arrows_and_persistence_diagram(input, target, topo_grad):

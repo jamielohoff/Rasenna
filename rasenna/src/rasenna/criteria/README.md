@@ -79,7 +79,7 @@ CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/infer.py <meaningful n
 in the ```segmfriends``` parent directory. This code predicts a given dataset using your trained network and outputs a score using connected components.
 When you use our segmfriends package, there is a file called ``` infer_config.yml ``` which is used to configure the inference. Most of the parameters are self-explanatory or explained in the comments.
 The option ```--config.inference.index_output <index>``` specified, which one of the two output branches are used in the analysis. 
-| index | branch| meaningful name |
+| Index | Branch| Meaningful Name |
 |-----|---------------------------------------------------| ----------|
 | 0 | use boundary branch, i.e. the branch where the topological loss was applied | BB (boundary branch) |
 | 1 | use the affinity branch, i.e. the branch where affinites have been used for computation | OB (original branch) |

@@ -79,4 +79,4 @@ CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/infer.py --
 in the ```segmfriends``` parent directory. This code predicts a given dataset using your trained network and outputs a score using connected components.
 When you use our segmfriends package, there is a file called ``` infer_config.yml ``` which is used to configure the inference. Most of the parameters are self-explanatory or explained in the comments.
 
-For more information on inference, the [cremi_python](https://github.com/elmo0082/cremi_python) package provides some Jupyter notebooks and examples on how to do inferencing using the provided tools.
+For more information on inference, the [cremi_python](https://github.com/elmo0082/cremi_python) package provides some examples on how to do inferencing using the provided tools.

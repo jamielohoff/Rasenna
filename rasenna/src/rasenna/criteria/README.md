@@ -73,7 +73,7 @@ If your model has converged, you can run the inferencing algorthm by executing
 CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/infer.py <meaningful name>
 --inherit <experiment name> 
 --update0 <your inference config name>.yml 
---config.inference.index_output 1 
+--config.inference.index_output <index> 
 --config.inference.threshold 0.5
 ```
 in the ```segmfriends``` parent directory. This code predicts a given dataset using your trained network and outputs a score using connected components.

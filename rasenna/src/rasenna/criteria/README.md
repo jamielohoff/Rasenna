@@ -70,7 +70,7 @@ When the pretraining is complete, you can use the pretrained model by loading it
 
 If your model has converged, you can run the inferencing algorthm by executing
 ```
-CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/infer.py --
+CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/infer.py <meaningful name>
 --inherit <experiment name> 
 --update0 <your inference config name>.yml 
 --config.inference.index_output 1 
@@ -78,5 +78,14 @@ CUDA_VISIBLE_DEVICES=<device ID> python experiments/cremi/infer.py --
 ```
 in the ```segmfriends``` parent directory. This code predicts a given dataset using your trained network and outputs a score using connected components.
 When you use our segmfriends package, there is a file called ``` infer_config.yml ``` which is used to configure the inference. Most of the parameters are self-explanatory or explained in the comments.
+The option ```--config.inference.index_output <index>``` specified, which one of the two output branches are used in the analysis. 
+| index | branch| meaningful name |
+|-----|---------------------------------------------------| ----------|
+| 0 | use boundary branch, i.e. the branch where the topological loss was applied | BB (boundary branch) |
+| 1 | use the affinity branch, i.e. the branch where affinites have been used for computation | OB (original branch) |
 
 For more information on inference, the [cremi_python](https://github.com/elmo0082/cremi_python) package provides some examples on how to do inferencing using the provided tools.
+
+## Analying the Inference Output
+
+

@@ -33,5 +33,5 @@ if __name__ == "__main__":
                 "matplotlib", 
                 "opencv",
                 "tensorboardx",
-                "multiprocessing"
-            ])
+                "multiprocessing",
+            ],)

@@ -38,6 +38,7 @@ def compute_persistence_2DImg(f, dimension=1.0, threshold=0.4):
     # Remember to transform back to the original coordinates when finished
     padwidth = 3
     padvalue = min(f.min(), 0.0)
+    # We remove 3 pixels on each boundary to reduce the influence of boundary artifacts due to convolutional layers
     f_padded = np.pad(f[3:-3, 3:-3], padwidth, 'constant', constant_values=padvalue)
     
     start = time.time()
@@ -188,8 +189,9 @@ def compute_loss_and_gradient(input, target, threshold, slice_index, loss_dict, 
             topo_grad[counter] = [input_death_cp[idx, 1], input_death_cp[idx, 0], force_list[idx, 1], input_dgms[idx, 1]]
             counter = counter + 1
 
-        # logging of  the persistence diagrams and the gradients
-        draw_arrows_and_persistence_diagram(input, target, topo_grad)
+        # logging of the persistence diagrams and the gradients only for the third slice
+        if slice_index == 3:
+            draw_arrows_and_persistence_diagram(input, target, topo_grad)
 
         """
         Topo_grad contains the coordinates/pixel positions of the critical points 

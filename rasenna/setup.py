@@ -20,4 +20,19 @@ except VersionConflict:
 
 
 if __name__ == "__main__":
-    setup(use_pyscaffold=True)
+    setup(use_pyscaffold=True,
+            name="Rasenna",
+            url="https://github.com/elmo0082/Rasenna",
+            author="Jamie Grieser"
+            
+            install_requires=[
+                "numpy",
+                "scipy",
+                "speedrun",
+                "h5py",
+                "torch",
+                "matplotlib", 
+                "opencv",
+                "tensorboardx",
+                "multiprocessing"
+            ])

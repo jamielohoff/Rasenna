@@ -31,4 +31,5 @@ if __name__ == "__main__":
                 "torch",
                 "matplotlib", 
                 "tensorboardx",
+                "opencv-python",
             ],)

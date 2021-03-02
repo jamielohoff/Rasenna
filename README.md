@@ -19,11 +19,6 @@ Install all those packages in the given order.
 
 ## Installation of Rasenna
 
-Before we can install the package, we have to install the packages ```opencv``` (provides tools for image analysis) and ```tensorboardX``` using
-```shell
-conda install -c conda-forge tensorboardX opencv
-```
-
 The Rasenna package is installed using three simple steps after cloning:
 1. Go to the directory ```rasenna/``` and run ```python setup.py develop``` - note that it will only work in the "develop" mode due to step 2.
 2. Next, got to the directory ```cPers/cPers/``` and run ```./compile_pers_lib.sh``` - this will compile the code required to calculate the persistent homology, which is written in C++ and has been copied from the following project: https://github.com/HuXiaoling/TopoLoss.

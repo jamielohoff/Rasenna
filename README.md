@@ -37,7 +37,11 @@ Once the project is properly installed, the usage is simple:
 4. Now you can apply the loss to tensors of 2D images. Note that we calculate only 1D homologies along the z-direction, i.e. we slice the image tensor along the z-direction and look at the 2D slices and analyze their topological features.
 5. We have implemented also a backward pass. Therefore the loss is fully differentiable and can be used for backpropagation.
 
-For an extensive example, look at the file ```CustomLossFunction.py``` in the ```criteria``` directory. It uses a combination of Sorensen-Dice and topological loss in the segmfriends and inferno framework to predict the boundaries of the cremi dataset. The details of the usage are documented in the ```criteria``` directory: [Documentation](https://github.com/elmo0082/Rasenna/blob/master/rasenna/src/rasenna/criteria/README.md).
+For an extensive example, look at the file ```CustomLossFunction.py``` in the ```criteria``` directory. It uses a combination of Sorensen-Dice and topological loss in the segmfriends and inferno framework to predict the boundaries of the cremi dataset. 
+
+The details of the usage are documented in the ```criteria``` directory: [Documentation](https://github.com/elmo0082/Rasenna/blob/master/rasenna/src/rasenna/criteria/README.md).
+
+To create the necessary modification to the Cremi dataset, look at [Modify Cremi](https://github.com/elmo0082/Rasenna/blob/master/rasenna/src/rasenna/utils/cremi/README.md).
 
 # Other Content of the Package
 

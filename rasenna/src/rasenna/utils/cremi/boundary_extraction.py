@@ -2,6 +2,7 @@ import h5py as h5py
 import numpy as np
 from shutil import copyfile
 from os.path import isfile
+from os import remove
 from utils import create_border_mask_2d, open_hdf_file
 
 
@@ -72,10 +73,11 @@ def modify_full_cremi(paddedFiles):
     for pf in paddedFiles:
         print(pf[:-3])
         if not isfile(pf[:-3] + '_boundary_maps.h5'):
-            create_boundary_map(pf, output_file=pf[:-3]+'_boundary_maps.h5')
+            create_boundary_map(pf, output_file=pf[:-3] + '_boundary_maps.h5')
             merge_cremi(cremi_file=pf, 
                         boundary_file=pf[:-3] + '_boundary_maps.h5',
                         output_file=pf[:-3] + '_with_boundaries.h5')
+            remove(pf[:-3] + '_boundary_maps.h5')
         else:
             print('File exists, skipping...')
             continue

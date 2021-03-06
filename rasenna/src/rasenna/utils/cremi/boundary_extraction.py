@@ -8,7 +8,7 @@ from utils import create_border_mask_2d, open_hdf_file
 
 def get_image_boundary(image, id, maxdist=1):
     """
-    Function to calculate the boundaries of the segmented image based on the raw data and the neuron id's
+    Function to calculate the boundaries of the segmented image based on the raw data and the neuron ids.
     """
     assert image.shape == id.shape
 
@@ -27,8 +27,12 @@ def get_image_boundary(image, id, maxdist=1):
 
 def create_boundary_map(path='', output_file=''):
     """
-    :param path: Path to the Cremi file
-    :param output_file: Name of the output_file
+    Function to calculate the boundary map for a given cremi dataset/dataframe.
+
+    :param path: string
+        Path to the Cremi file.
+    :param output_file: strings
+        Name of the output_file.
     """
     print('Loading...')
     raw_data = open_hdf_file(path, key='volumes/raw')
@@ -77,6 +81,7 @@ def modify_full_cremi(paddedFiles):
             merge_cremi(cremi_file=pf, 
                         boundary_file=pf[:-3] + '_boundary_maps.h5',
                         output_file=pf[:-3] + '_with_boundaries.h5')
+            print('Cleaning up...')
             remove(pf[:-3] + '_boundary_maps.h5')
         else:
             print('File exists, skipping...')

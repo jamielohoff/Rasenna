@@ -27,8 +27,8 @@ def get_image_boundary(image, id, maxdist=1):
 
 def create_boundary_map(path='', output_file=''):
     """
-    :param path: Path to the Cremi files
-    :param 
+    :param path: Path to the Cremi file
+    :param output_file: Name of the output_file
     """
     print('Loading...')
     raw_data = open_hdf_file(path, key='volumes/raw')

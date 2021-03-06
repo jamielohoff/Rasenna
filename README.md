@@ -39,6 +39,8 @@ Once the project is properly installed, the usage is simple:
 
 For an extensive example, look at the file ```CustomLossFunction.py``` in the ```criteria``` directory. It uses a combination of Sorensen-Dice and topological loss in the segmfriends and inferno framework to predict the boundaries of the cremi dataset. The details of the usage are documented in the ```criteria``` directory: [Documentation](https://github.com/elmo0082/Rasenna/blob/master/rasenna/src/rasenna/criteria/README.md).
 
+To create the necessary modification to the Cremi dataset, look at [Modify Cremi](https://github.com/elmo0082/Rasenna/blob/master/rasenna/src/rasenna/utils/cremi/README.md).
+
 # Other Content of the Package
 
 The package contains the code for Rasenna itself as well as the cPers library for persistence computation. 

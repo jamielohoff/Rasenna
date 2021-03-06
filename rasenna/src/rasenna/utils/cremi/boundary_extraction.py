@@ -61,26 +61,21 @@ def merge_cremi(cremi_file='', boundary_file='', output_file=''):
         dset = f.create_dataset('volumes/labels/boundary_maps', data=boundaries, dtype='int32')
     print('Done.')
 
-def modify_full_cremi(croppedFiles=None):
-    fullpath = '/export/home/jgrieser/datasets/CREMI/'
-    paddedFiles = ['paddedData/sample_A', 'paddedData/sample_B', 'paddedData/sample_C']
+def modify_full_cremi(paddedFiles):
+    """
+    This function allows you to calculate and add all boundaries the full cremi dataset (A,B,C) with a single command.
 
-    # Use the files for the neuronal network also as source files for th boundaries
-    if croppedFiles is None:
-        croppedFiles = paddedFiles
+    :param paddedFiles: array of strings
+            Use this command to specify the names of the file you wish to modify.
+    """
 
-    for crop_file in croppedFiles:
-        if not isfile(fullpath + crop_file + '_boundary_maps.h5'):
-            create_boundary_map(fullpath + crop_file + '.h5', output_file=fullpath + crop_file + '_boundary_maps.h5')
-        else:
-            print('File exists, skipping...')
-            continue
-    
-    for pad_file,bound_file in zip(paddedFiles, croppedFiles):
-        if not isfile(fullpath + pad_file + '_with_boundaries.h5'):
-            merge_cremi(cremi_file=fullpath + pad_file + '.h5', 
-                        boundary_file=fullpath + crop_file+'_boundary_maps.h5',
-                        output_file=fullpath + pad_file + '_with_boundaries.h5')
+    for pf in paddedFiles:
+        print(pf[:-3])
+        if not isfile(pf[:-3] + '_boundary_maps.h5'):
+            create_boundary_map(pf, output_file=pf[:-3]+'_boundary_maps.h5')
+            merge_cremi(cremi_file=pf, 
+                        boundary_file=pf[:-3] + '_boundary_maps.h5',
+                        output_file=pf[:-3] + '_with_boundaries.h5')
         else:
             print('File exists, skipping...')
             continue

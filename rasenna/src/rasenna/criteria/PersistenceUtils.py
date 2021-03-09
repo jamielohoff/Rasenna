@@ -7,12 +7,10 @@ import math
 import logging
 import matplotlib.pyplot as plt
 from .utils import draw_arrows_and_persistence_diagram
-
-# TODO fix imports 
 import imp
 imp.load_dynamic('PersistencePython', os.path.dirname(__file__) + '/PersistencePython.so')
-# '/home_sdb/jgrieser_tmp/anaconda3/envs/segmFr/lib/PersistencePython.so')
 from PersistencePython import cubePers
+
 
 def compute_persistence_2DImg(f, dimension=1.0, threshold=0.4):
     """
@@ -38,8 +36,7 @@ def compute_persistence_2DImg(f, dimension=1.0, threshold=0.4):
     # Remember to transform back to the original coordinates when finished
     padwidth = 3
     padvalue = min(f.min(), 0.0)
-    # We remove 3 pixels on each boundary to reduce the influence of boundary artifacts due to convolutional layers
-    f_padded = np.pad(f[3:-3, 3:-3], padwidth, 'constant', constant_values=padvalue)
+    f_padded = np.pad(f, padwidth, 'constant', constant_values=padvalue)
     
     start = time.time()
 
@@ -67,8 +64,8 @@ def compute_persistence_2DImg(f, dimension=1.0, threshold=0.4):
         death_cp_list = persistence_result_filtered[:, 4 + dim:]
 
         # When mapping back, shift critical points back to the original coordinates
-        birth_cp_list = birth_cp_list - padwidth + 3
-        death_cp_list = death_cp_list - padwidth + 3
+        birth_cp_list = birth_cp_list - padwidth
+        death_cp_list = death_cp_list - padwidth
     return dgm, birth_cp_list, death_cp_list
 
 
@@ -118,7 +115,6 @@ def compute_dgm_force(lh_dgm, gt_dgm):
 
     # only select the ones whose persistence is large enough
     # set a threshold to remove meaningless persistence dots
-    # TODO values below this are small dents so dont fix them; tune this value?
     pers_thd = 0.05
     idx_valid = np.where(lh_pers > pers_thd)[0]
     idx_holes_to_remove = list(set(idx_holes_to_remove).intersection(set(idx_valid)))
@@ -133,6 +129,7 @@ def compute_dgm_force(lh_dgm, gt_dgm):
     force_list[idx_holes_to_remove, 1] = -lh_pers[idx_holes_to_remove] / math.sqrt(2.0)
 
     return force_list, idx_holes_to_fix, idx_holes_to_remove
+
 
 def compute_loss(force_list, idx_holes_to_fix, idx_holes_to_remove):
     """
@@ -152,10 +149,18 @@ def compute_loss(force_list, idx_holes_to_fix, idx_holes_to_remove):
 
     return loss
 
-def compute_loss_and_gradient(input, target, threshold, slice_index, loss_dict, gradient_dict):
+
+def loss_and_gradient(input, target, threshold):
     """
     Copied from Hu's code under https://github.com/HuXiaoling/TopoLoss and heavily modified by author.
     This is a function to parallelize the computation of the loss and gradient for each slice.
+
+    :param input: pytorch.tensor
+        Input tensor of shape (x-size, y-size).
+    :param output: pytorch.tensor
+        Target tensor of shape (x-size, y-size).
+    :param threshold: float
+        Threshold for persistence homology calculation.
     """
     # computation of the diagrams of prediction (input) and ground truth (target)
     input_dgms, input_birth_cp, input_death_cp = compute_persistence_2DImg(input, dimension=1, threshold=threshold)
@@ -167,10 +172,6 @@ def compute_loss_and_gradient(input, target, threshold, slice_index, loss_dict, 
 
         # compute loss
         loss = compute_loss(force_list, idx_holes_to_fix, idx_holes_to_remove)
-
-        ###############################
-        #-Computation of the gradient-#
-        ###############################
         
         # each birth/death crit pt of a persistence dot to move corresponds to a row
         # each row has 3 values: x, y coordinates, and the force (increase/decrease)
@@ -189,36 +190,22 @@ def compute_loss_and_gradient(input, target, threshold, slice_index, loss_dict, 
             topo_grad[counter] = [input_death_cp[idx, 1], input_death_cp[idx, 0], force_list[idx, 1], input_dgms[idx, 1]]
             counter = counter + 1
 
-        # logging of the persistence diagrams and the gradients only for the third slice
-        if slice_index == 3:
-            draw_arrows_and_persistence_diagram(input, target, topo_grad)
-
         """
-        Topo_grad contains the coordinates/pixel positions of the critical points 
+        topo_grad contains the coordinates/pixel positions of the critical points 
         as well as the value of the gradient at the respective point in the format
         [x, y, gradient].
         We have to convert this into a format pytorch can use, i.e. we have to 
         create a 2x2 matrix that contains the gradients at the respective positions
         and uses the x,y-positions as indices.
 
-        Thus we get a [length, width]-matrix with gradients as entries.
+        Thus we get a (length, width)-matrix with gradients as entries.
         """
         topo_grad[:, 2] = topo_grad[:, 2] * 2
 
-        gradients = np.zeros((input.shape[0], input.shape[1]))
-
-        # Populate gradient matrix
-        for pos in topo_grad:
-            gradients[int(pos[1]), int(pos[0])] = pos[2]
     else:
+        # There are no topological features in the picture and thus no topological gradient
         loss = 0.0
-        gradients = np.zeros((input.shape[0], input.shape[1]))
+        topo_grad = np.array([])
 
-    """
-    In-place modification of loss_dict and gradient_dict.
-    This is necessary due to the usage of multiprocessing.
-    Only then, the gradients will be in the right order. 
-    """
-    loss_dict[slice_index] = loss
-    gradient_dict[slice_index] = torch.from_numpy(gradients)
+    return loss, topo_grad
 

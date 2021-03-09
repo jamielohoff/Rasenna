@@ -89,8 +89,17 @@ The option ```--config.inference.index_output <index>``` specified, which one of
 
 For more information on inference, the [cremi_python](https://github.com/elmo0082/cremi_python) package provides some examples on how to do inferencing using the provided tools.
 
-
-
 ## Analyzing the Inference Output
 
 You can use various data science and engineering tools to analyze the output data, which can be found in the ```segmfriends/experiments/cremi/runs/<experiment name>_<meaningful name>_inference``` directory. There, you will find a file named ``` predictions_<sample name>.h5 ``` which contains the segmentation as a .h5 file which is best analyzed with ```h5py``` .
+
+## Using the Subdivision Loss
+
+To use the subdivision loss, just replace ```rasenna.criteria.CustomLossFunctions.TopologicalLoss``` with 
+```rasenna.criteria.CustomLossFunctions.SubdivisionLoss``` in your configuration file. 
+The subdivision loss uses a subdivision scheme to divide the prediction and target images into (m, n)-grids and calculate the 
+persistent homology for each of the tiles separately and then reassembles the gradient matrix from it.
+This feature is not very well tested but it should increase the computational speed and also should improve the localisation
+of topological feature.
+For more information, look at the source code.
+

@@ -8,7 +8,8 @@ from torch.autograd import Function
 from .PersistenceUtils import loss_and_gradient
 from .utils import draw_arrows_and_persistence_diagram
 
-class TopologicalLossFunction(Function):
+
+class SubdivisionLossFunction(Function):
     """
     This loss-function calculates the topological loss of a gray-scale image/input in 2.5 dimensions, 
     i.e. 1D homology on 3D voxel slices in z-direction. 
@@ -33,6 +34,7 @@ class TopologicalLossFunction(Function):
         grad_list = None
         threshold = 0.4
         jobs = []
+        grid = (2, 2)
 
         # Setting up the multiprocessing manager
         manager = mp.Manager()
@@ -45,8 +47,8 @@ class TopologicalLossFunction(Function):
             # We have to invert the values to be able to use Hu's persistent homology package
             _input = 1 - input.cpu().detach()[i]
             _target = 1 - target.cpu().detach()[i]
-            p = mp.Process(target=compute_loss_and_gradient, args=(_input, _target, threshold, 
-                                                                    i, loss_dict, gradient_dict))
+            p = mp.Process(target=compute_loss_and_gradient, args=(grid, _input, _target, threshold, 
+                                                                          i, loss_dict, gradient_dict))
             jobs.append(p)
             p.start()
 
@@ -74,30 +76,68 @@ class TopologicalLossFunction(Function):
         return torch.stack(ctx.grad_list, dim=0), None
 
 
-def compute_loss_and_gradient(input, target, threshold, slice_index, loss_dict, gradient_dict):
+def compute_loss_and_gradient(grid, input, target, threshold, slice_index, loss_dict, gradient_dict):
     """
-    Wrapper function for loss_and_gradient to make it more modular. Computes gradient matrix from topo_grad and manages logging.
+    Function that uses a subdivision scheme in order to accelerate the computation and increase its precision.
+    The input image is subdivided into a grid of smaller tiles and then the persistent homology is computed on these tiles.
+    After that, the are reassembled and the gradient matrix is reconstructed.
+
+    :param grid: tuple of integers
+        Number of cells and columns (cells, columns).
+    :param input: pytorch.tensor
+        Input tensor containing the prediction of shape (x-size, y-size).
+    :param target: pytorch.tensor
+        Target tensor containing the ground truth of shape (x-size, y-size).
+    :param threshold: float
+        Threshold for persistent homology calculation.
+    :param slice_index: int
+        Specifies the slice from which to log the prediction, gradients and persistent homology for display in tensorboard.
+        Also is used to specify the position of the loss and gradient of this slice in the loss_dict and gradient_dict.
+    :param loss_dict: dict
+        Dictionary containing all the losses from the different slice computed in separated processes. 
+        Is modified inplace to avoid memory corruption etc. to allow parallelization.
+    :param gradient_dict: dict
+        Dictionary containing all the gradients from the different slice computed in separated processes. 
+        Is modified inplace to avoid memory corruption etc. to allow parallelization.
     """
-    # We remove 3 pixels on each boundary to reduce the influence of boundary artifacts due to convolutional layers
-    _input = input.numpy()
-    _target = target.numpy()
-    loss, _topo_grad = loss_and_gradient(_input[3:-3, 3:-3], _target[3:-3, 3:-3], threshold)
+    # Pixel width and height of the the image of course has to be divisible by the number of grid tiles
+    assert input.shape[0] % grid[0] == 0 and input.shape[1] % grid[1] == 0, "Input shape not divisible by grid size!"
+    assert target.shape[0] % grid[0] == 0 and target.shape[1] % grid[1] == 0, "Target shape not divisible by grid size!"
+    m, n = grid
+    M = int(input.shape[0]/m)
+    N = int(target.shape[0]/n)
+
+    loss = 0.0
     gradients = np.zeros((input.shape[0], input.shape[1]))
-
     topo_grad = []
+    """
+    Go through all the tiles iteratively and calculate the persistent homology as well as the gradient matrix
+    and then reassemble the whole gradient matrix from the tiles. 
+    Also, create the data required for logging.
+    """
+    for k in range(0, m*n):
+        i = int(k % m)
+        j = int(k / m)
 
-    # Populate gradient matrix
-    if _topo_grad.shape != (0,):
-        for pos in _topo_grad:
-            gradients[int(pos[1]) + 3, int(pos[0]) + 3] = pos[2]
-            if slice_index == 3:
-                # We also need to adjust the position of the pixels for plotting in the persistence diagram
-                topo_grad.append(np.array([pos[0] + 3, pos[1] + 3, pos[2], pos[3]]))
-        
-    # Trigger logging of persistence diagram if slice_index is 3
+        _input = input[M*i : M*(i+1),  N*j : N*(j+1)].numpy()
+        _target = target[M*i : M*(i+1), N*j  : N*(j+1)].numpy()
+
+        _loss, _topo_grad = loss_and_gradient(_input, _target, threshold) 
+
+        # Populate gradient matrix
+        if _topo_grad.shape != (0,):
+            for pos in _topo_grad:
+                gradients[int(M*i + pos[1]), int(N*j + pos[0])] = pos[2]
+                # topo_grad is ad dictionary only needed for logging of he persistence diagram
+                # Thus, we should only construct it if we need it.
+                if slice_index == 3:
+                    topo_grad.append(np.array([pos[0] + N*j, pos[1] + M*i, pos[2], pos[3]]))
+        loss += _loss
+
+    #  Logging 
     if slice_index == 3:
         draw_arrows_and_persistence_diagram(input, target, np.array(topo_grad))
-
+    
     """
     In-place modification of loss_dict and gradient_dict.
     This is necessary due to the usage of multiprocessing.

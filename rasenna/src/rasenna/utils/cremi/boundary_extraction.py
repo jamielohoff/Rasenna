@@ -75,7 +75,6 @@ def modify_full_cremi(paddedFiles):
     """
 
     for pf in paddedFiles:
-        print(pf[:-3])
         if not isfile(pf[:-3] + '_boundary_maps.h5'):
             create_boundary_map(pf, output_file=pf[:-3] + '_boundary_maps.h5')
             merge_cremi(cremi_file=pf, 

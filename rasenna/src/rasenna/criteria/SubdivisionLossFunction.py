@@ -101,14 +101,19 @@ def compute_loss_and_gradient(grid, input, target, threshold, slice_index, loss_
         Is modified inplace to avoid memory corruption etc. to allow parallelization.
     """
     # Pixel width and height of the the image of course has to be divisible by the number of grid tiles
-    assert input.shape[0] % grid[0] == 0 and input.shape[1] % grid[1] == 0, "Input shape not divisible by grid size!"
-    assert target.shape[0] % grid[0] == 0 and target.shape[1] % grid[1] == 0, "Target shape not divisible by grid size!"
+    assert (input.shape[0]-3) % grid[0] == 0 and (input.shape[1]-3) % grid[1] == 0, "Input shape not divisible by grid size!"
+    assert (target.shape[0]-3) % grid[0] == 0 and (target.shape[1]-3) % grid[1] == 0, "Target shape not divisible by grid size!"
+
+    # We have to ignore the boundary of thickness of 3 pixels in order to avoid artifacts
+    _input = input[3:-3, 3:-3]
+    _target = target[3:-3, 3:-3]
+
     m, n = grid
-    M = int(input.shape[0]/m)
-    N = int(target.shape[0]/n)
+    M = int((input.shape[0]-6)/m) # width of a tile
+    N = int((target.shape[0]-6)/n) # height of a tile
 
     loss = 0.0
-    gradients = np.zeros((input.shape[0], input.shape[1]))
+    gradients = np.zeros((input.shape[0] - 6, input.shape[1] - 6))
     topo_grad = []
     """
     Go through all the tiles iteratively and calculate the persistent homology as well as the gradient matrix
@@ -119,10 +124,10 @@ def compute_loss_and_gradient(grid, input, target, threshold, slice_index, loss_
         i = int(k % m)
         j = int(k / m)
 
-        _input = input[M*i : M*(i+1),  N*j : N*(j+1)].numpy()
-        _target = target[M*i : M*(i+1), N*j  : N*(j+1)].numpy()
+        _input_tile = _input[M*i : M*(i+1),  N*j : N*(j+1)].numpy()
+        _target_tile = _target[M*i : M*(i+1), N*j  : N*(j+1)].numpy()
 
-        _loss, _topo_grad = loss_and_gradient(_input, _target, threshold) 
+        _loss, _topo_grad = loss_and_gradient(_input_tile, _target_tile, threshold) 
 
         # Populate gradient matrix
         if _topo_grad.shape != (0,):
@@ -131,8 +136,11 @@ def compute_loss_and_gradient(grid, input, target, threshold, slice_index, loss_
                 # topo_grad is ad dictionary only needed for logging of he persistence diagram
                 # Thus, we should only construct it if we need it.
                 if slice_index == 3:
-                    topo_grad.append(np.array([pos[0] + N*j, pos[1] + M*i, pos[2], pos[3]]))
+                    topo_grad.append(np.array([pos[0] + N*j + 3, pos[1] + M*i + 3, pos[2], pos[3]]))
         loss += _loss
+
+    # Of course we have to add the boundary again in order for the gradient matrix to have the right dimension
+    gradients_padded = np.pad(gradients, 3, 'constant', constant_values=0.0)
 
     #  Logging 
     if slice_index == 3:
@@ -144,5 +152,5 @@ def compute_loss_and_gradient(grid, input, target, threshold, slice_index, loss_
     Only then, the gradients will be in the right order. 
     """
     loss_dict[slice_index] = loss
-    gradient_dict[slice_index] = torch.from_numpy(gradients)
+    gradient_dict[slice_index] = torch.from_numpy(gradients_padded)
 
